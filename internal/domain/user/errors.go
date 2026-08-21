@@ -4,8 +4,8 @@ import "errors"
 
 var (
 	// lookup / uniqueness
-	ErrUserNotFound      = errors.New("user not found")
-	ErrUserAlreadyExists = errors.New("user already exists")
+	ErrUserNotFound       = errors.New("user not found")
+	ErrUserAlreadyExists  = errors.New("user already exists")
 	ErrEmailAlreadyExists = errors.New("email already exists")
 
 	// validation input
@@ -21,8 +21,8 @@ var (
 	ErrPasswordTooWeak    = errors.New("password is too weak")
 
 	// account state
-	ErrUserInactive     = errors.New("user is inactive")
-	ErrUserBanned       = errors.New("user is banned")
+	ErrUserInactive      = errors.New("user is inactive")
+	ErrUserBanned        = errors.New("user is banned")
 	ErrUserAlreadyActive = errors.New("user is already active")
 
 	// authorization / business rules

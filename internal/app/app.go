@@ -83,7 +83,7 @@ func (a *Application) initJwtManager() {
 
 func (a *Application) initRouter() {
 	a.fiberApp = fiber.New()
-	httpRouter.NewRouter(a.fiberApp, a.handlers.UserHandler)
+	httpRouter.NewRouter(a.fiberApp, a.handlers.UserHandler, a.jwtManager)
 }
 
 func (a *Application) Run() error {

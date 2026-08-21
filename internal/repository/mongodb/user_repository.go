@@ -7,6 +7,7 @@ import (
 	"teaching_assistant/internal/domain/user"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -35,4 +36,17 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*user.U
 		return nil, err
 	}
 	return &user, err
+}
+
+func (r *userRepository) FindById(ctx context.Context, id primitive.ObjectID) (*user.User, error) {
+	filter := bson.M{"_id": id}
+	var user user.User
+	err := r.collection.FindOne(ctx, filter).Decode(&user)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, errors.New("user not found")
+		}
+		return nil, err
+	}
+	return &user, nil
 }
