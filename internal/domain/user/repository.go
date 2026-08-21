@@ -3,5 +3,6 @@ package user
 import "context"
 
 type UserRepository interface {
-	CreateUser(ctx context.Context, user *User) error
+	Create(ctx context.Context, user *User) error
+	FindByEmail(ctx context.Context, email string) (*User, error)
 }

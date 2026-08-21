@@ -9,11 +9,17 @@ type Config struct {
 	Host    string        `env:"HOST"`
 	Port    string        `env:"PORT"`
 	MongoDB MongoDBConfig `envPrefix:"MONGODB_"`
+	JWT     JWTConfig     `envPrefix:"JWT_"`
 }
 
 type MongoDBConfig struct {
 	URI    string `env:"URI"`
 	DBName string `env:"DB_NAME"`
+}
+
+type JWTConfig struct {
+	Secret      string `env:"SECRET"`
+	ExpireHours int    `env:"EXPIRE_HOURS"`
 }
 
 func Load() (*Config, error) {

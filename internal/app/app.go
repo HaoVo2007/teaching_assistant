@@ -8,6 +8,7 @@ import (
 	"teaching_assistant/internal/infrastructure/database"
 	"teaching_assistant/internal/repository/mongodb"
 	"teaching_assistant/internal/usecase"
+	"teaching_assistant/pkg/jwt"
 
 	httpRouter "teaching_assistant/internal/delivery/http"
 	httpHandler "teaching_assistant/internal/delivery/http/handler"
@@ -20,6 +21,8 @@ type Application struct {
 	fiberApp     *fiber.App
 	cfg          *config.Config
 	client       *mongo.Client
+	db           *mongo.Database
+	jwtManager   *jwt.Manager
 	repositories Repositories
 	services     Services
 	handlers     Handlers
@@ -38,17 +41,13 @@ type Handlers struct {
 }
 
 func NewApplication(ctx context.Context, cfg *config.Config) (*Application, error) {
-	db, client, err := database.Connect(ctx, cfg.MongoDB.URI, cfg.MongoDB.DBName)
-	if err != nil {
-		return nil, err
-	}
-
 	a := &Application{
-		cfg:    cfg,
-		client: client,
+		cfg: cfg,
 	}
 
-	a.initRepositories(db)
+	a.initDatabase(ctx)
+	a.initJwtManager()
+	a.initRepositories()
 	a.initServices()
 	a.initHandlers()
 	a.initRouter()
@@ -56,16 +55,30 @@ func NewApplication(ctx context.Context, cfg *config.Config) (*Application, erro
 	return a, nil
 }
 
-func (a *Application) initRepositories(db *mongo.Database) {
-	a.repositories.UserRepository = mongodb.NewUserRepository(db)
+func (a *Application) initDatabase(ctx context.Context) error {
+	db, client, err := database.Connect(ctx, a.cfg.MongoDB.URI, a.cfg.MongoDB.DBName)
+	if err != nil {
+		return err
+	}
+	a.db = db
+	a.client = client
+	return nil
+}
+
+func (a *Application) initRepositories() {
+	a.repositories.UserRepository = mongodb.NewUserRepository(a.db)
 }
 
 func (a *Application) initServices() {
-	a.services.UserService = usecase.NewUserService(a.repositories.UserRepository)
+	a.services.UserService = usecase.NewUserService(a.repositories.UserRepository, a.jwtManager)
 }
 
 func (a *Application) initHandlers() {
 	a.handlers.UserHandler = httpHandler.NewUserHandler(a.services.UserService)
+}
+
+func (a *Application) initJwtManager() {
+	a.jwtManager = jwt.NewManager(a.cfg.JWT.Secret, a.cfg.JWT.ExpireHours)
 }
 
 func (a *Application) initRouter() {

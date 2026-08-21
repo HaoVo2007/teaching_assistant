@@ -9,7 +9,7 @@ func NewRouter(app *fiber.App, userH *handler.UserHandler) {
 	api := app.Group("/api/v1")
 	users := api.Group("/users")
 	{
-		users.Post("/", userH.CreateUser)
+		users.Post("/register", userH.Register)
 	}
 
 }
