@@ -6,10 +6,11 @@ import (
 )
 
 type Config struct {
-	Host    string        `env:"HOST"`
-	Port    string        `env:"PORT"`
-	MongoDB MongoDBConfig `envPrefix:"MONGODB_"`
-	JWT     JWTConfig     `envPrefix:"JWT_"`
+	Host          string        `env:"HOST"`
+	Port          string        `env:"PORT"`
+	MongoDB       MongoDBConfig `envPrefix:"MONGODB_"`
+	JWT           JWTConfig     `envPrefix:"JWT_"`
+	CloudinaryURL string        `env:"CLOUDINARY_URL"`
 }
 
 type MongoDBConfig struct {

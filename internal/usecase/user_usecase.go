@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"teaching_assistant/internal/delivery/http/mapper"
 	"teaching_assistant/internal/delivery/http/request"
 	"teaching_assistant/internal/delivery/http/response"
 	"teaching_assistant/internal/domain/user"
@@ -59,19 +60,14 @@ func (s *userService) Register(ctx context.Context, req request.CreateUserReques
 		return nil, err
 	}
 
-	token, err := s.jwtManager.GenerateToken(user.ID.Hex(), user.Username, user.Email, user.Role)
+	token, err := s.jwtManager.GenerateToken(user.ID.Hex(), user.Username, user.Email, string(user.Role))
 	if err != nil {
 		return nil, err
 	}
 
 	return &response.AuthResponse{
 		Token: token,
-		User: response.UserResponse{
-			ID:       user.ID.Hex(),
-			Username: user.Username,
-			Email:    user.Email,
-			Role:     string(user.Role),
-		},
+		User:  mapper.MapUserToUserResponse(user),
 	}, nil
 }
 
@@ -97,19 +93,14 @@ func (s *userService) Login(ctx context.Context, req request.LoginUserRequest) (
 		return nil, err
 	}
 
-	token, err := s.jwtManager.GenerateToken(userRes.ID.Hex(), userRes.Username, userRes.Email, userRes.Role)
+	token, err := s.jwtManager.GenerateToken(userRes.ID.Hex(), userRes.Username, userRes.Email, string(userRes.Role))
 	if err != nil {
 		return nil, err
 	}
 
 	return &response.AuthResponse{
 		Token: token,
-		User: response.UserResponse{
-			ID:       userRes.ID.Hex(),
-			Username: userRes.Username,
-			Email:    userRes.Email,
-			Role:     string(userRes.Role),
-		},
+		User:  mapper.MapUserToUserResponse(userRes),
 	}, nil
 }
 
@@ -131,6 +122,6 @@ func (s *userService) Logout(ctx context.Context, userId string) error {
 	if userRes == nil {
 		return user.ErrUserNotFound
 	}
-	
+
 	return nil
 }

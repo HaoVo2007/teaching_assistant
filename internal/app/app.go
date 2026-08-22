@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"teaching_assistant/internal/config"
+	"teaching_assistant/internal/domain/question"
 	"teaching_assistant/internal/domain/user"
 	"teaching_assistant/internal/infrastructure/database"
 	"teaching_assistant/internal/repository/mongodb"
@@ -12,6 +13,7 @@ import (
 
 	httpRouter "teaching_assistant/internal/delivery/http"
 	httpHandler "teaching_assistant/internal/delivery/http/handler"
+	infrastructureCloudinary "teaching_assistant/internal/infrastructure/cloudinary"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -23,21 +25,25 @@ type Application struct {
 	client       *mongo.Client
 	db           *mongo.Database
 	jwtManager   *jwt.Manager
+	cloudinary   *infrastructureCloudinary.CloudinaryUploader
 	repositories Repositories
 	services     Services
 	handlers     Handlers
 }
 
 type Repositories struct {
-	UserRepository user.UserRepository
+	UserRepository     user.UserRepository
+	QuestionRepository question.QuestionRepository
 }
 
 type Services struct {
-	UserService user.UserService
+	UserService     user.UserService
+	QuestionService question.QuestionService
 }
 
 type Handlers struct {
-	UserHandler *httpHandler.UserHandler
+	UserHandler     *httpHandler.UserHandler
+	QuestionHandler *httpHandler.QuestionHandler
 }
 
 func NewApplication(ctx context.Context, cfg *config.Config) (*Application, error) {
@@ -47,6 +53,7 @@ func NewApplication(ctx context.Context, cfg *config.Config) (*Application, erro
 
 	a.initDatabase(ctx)
 	a.initJwtManager()
+	a.initCloudinary()
 	a.initRepositories()
 	a.initServices()
 	a.initHandlers()
@@ -67,23 +74,34 @@ func (a *Application) initDatabase(ctx context.Context) error {
 
 func (a *Application) initRepositories() {
 	a.repositories.UserRepository = mongodb.NewUserRepository(a.db)
+	a.repositories.QuestionRepository = mongodb.NewQuestionRepository(a.db)
 }
 
 func (a *Application) initServices() {
 	a.services.UserService = usecase.NewUserService(a.repositories.UserRepository, a.jwtManager)
+	a.services.QuestionService = usecase.NewQuestionService(a.repositories.QuestionRepository, a.cloudinary)
 }
 
 func (a *Application) initHandlers() {
 	a.handlers.UserHandler = httpHandler.NewUserHandler(a.services.UserService)
+	a.handlers.QuestionHandler = httpHandler.NewQuestionHandler(a.services.QuestionService)
 }
 
 func (a *Application) initJwtManager() {
 	a.jwtManager = jwt.NewManager(a.cfg.JWT.Secret, a.cfg.JWT.ExpireHours)
 }
 
+func (a *Application) initCloudinary() {
+	cloudinaryUploader, err := infrastructureCloudinary.NewCloudinaryUploader(a.cfg.CloudinaryURL)
+	if err != nil {
+		panic(err)
+	}
+	a.cloudinary = cloudinaryUploader
+}
+
 func (a *Application) initRouter() {
 	a.fiberApp = fiber.New()
-	httpRouter.NewRouter(a.fiberApp, a.handlers.UserHandler, a.jwtManager)
+	httpRouter.NewRouter(a.fiberApp, a.handlers.UserHandler, a.handlers.QuestionHandler, a.jwtManager)
 }
 
 func (a *Application) Run() error {

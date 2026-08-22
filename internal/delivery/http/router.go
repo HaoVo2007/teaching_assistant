@@ -8,13 +8,27 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func NewRouter(app *fiber.App, userH *handler.UserHandler, jwtManager *jwt.Manager) {
+func NewRouter(
+	app *fiber.App,
+	userH *handler.UserHandler,
+	questionH *handler.QuestionHandler,
+	jwtManager *jwt.Manager,
+) {
 	api := app.Group("/api/v1")
+
+	// auth routes
 	auth := api.Group("/auth")
 	{
 		auth.Post("/register", userH.Register)
 		auth.Post("/login", userH.Login)
-		auth.Post("/logout", userH.Logout, middleware.AuthMiddleware(jwtManager))
+		auth.Post("/logout", middleware.AuthMiddleware(jwtManager), userH.Logout)
 	}
+	// user routes
 
+	//question routes
+	question := api.Group("/questions")
+	{
+		question.Post("/", middleware.AuthMiddleware(jwtManager), questionH.CreateQuestion)
+	}
+	// question routes
 }

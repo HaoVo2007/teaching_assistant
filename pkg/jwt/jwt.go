@@ -3,17 +3,16 @@ package jwt
 import (
 	"errors"
 	"fmt"
-	"teaching_assistant/internal/domain/user"
 	"time"
 
 	jwt "github.com/golang-jwt/jwt/v5"
 )
 
 type Claims struct {
-	UserID   string    `json:"user_id"`
-	Username string    `json:"username"`
-	Email    string    `json:"email"`
-	Role     user.Role `json:"role"`
+	UserID   string `json:"user_id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Role     string `json:"role"`
 	jwt.RegisteredClaims
 }
 
@@ -33,7 +32,7 @@ func NewManager(secret string, expireHours int) *Manager {
 	}
 }
 
-func (m *Manager) GenerateToken(userID, username, email string, role user.Role) (string, error) {
+func (m *Manager) GenerateToken(userID, username, email, role string) (string, error) {
 	now := time.Now()
 	claims := Claims{
 		UserID:   userID,
@@ -50,20 +49,19 @@ func (m *Manager) GenerateToken(userID, username, email string, role user.Role) 
 }
 
 func (m *Manager) ParseToken(tokenString string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return m.secret, nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
 
-	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
-		return claims, nil
+	claims, ok := token.Claims.(*Claims)
+	if !ok || !token.Valid {
+		return nil, errors.New("invalid token")
 	}
-
-	return nil, errors.New("invalid token")
+	return claims, nil
 }

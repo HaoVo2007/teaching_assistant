@@ -11,6 +11,7 @@ var (
 	// validation input
 	ErrInvalidEmail    = errors.New("invalid email")
 	ErrInvalidPassword = errors.New("invalid password")
+	ErrInvalidUsername = errors.New("invalid username")
 	ErrInvalidName     = errors.New("invalid name")
 	ErrInvalidRole     = errors.New("invalid role")
 
