@@ -12,4 +12,5 @@ var (
 	ErrQuestionNotFound = errors.New("question not found")
 	ErrInvalidSubject   = errors.New("invalid subject")
 	ErrInvalidGrade     = errors.New("invalid grade")
+	ErrUnauthorized     = errors.New("unauthorized")
 )

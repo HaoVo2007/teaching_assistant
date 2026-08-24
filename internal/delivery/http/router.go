@@ -28,7 +28,11 @@ func NewRouter(
 	//question routes
 	question := api.Group("/questions")
 	{
-		question.Post("/", middleware.AuthMiddleware(jwtManager), questionH.CreateQuestion)
+		question.Post("", middleware.AuthMiddleware(jwtManager), questionH.CreateQuestion)
+		question.Get("", middleware.AuthMiddleware(jwtManager), questionH.GetQuestions)
+		question.Get("/:id", middleware.AuthMiddleware(jwtManager), questionH.GetQuestionById)
+		question.Put("/:id", middleware.AuthMiddleware(jwtManager), questionH.UpdateQuestionById)
+		question.Delete("/:id", middleware.AuthMiddleware(jwtManager), questionH.DeleteQuestionById)
 	}
 	// question routes
 }

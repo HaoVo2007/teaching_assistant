@@ -23,7 +23,7 @@ const (
 
 type Question struct {
 	ID           primitive.ObjectID `bson:"_id"`
-	Type         string             `bson:"type"`
+	Type         string             `bson:"type"` // multiple_choice, true_false, matching
 	Subject      string             `bson:"subject"`
 	Grade        string             `bson:"grade"`
 	Difficulty   string             `bson:"difficulty"`
@@ -33,6 +33,7 @@ type Question struct {
 	CorrectBool  *bool              `bson:"correct_bool,omitempty"`
 	Pairs        []Pair             `bson:"pairs,omitempty"`
 	Explanation  string             `bson:"explanation,omitempty"`
+	CreatedBy    string             `bson:"created_by"`
 	CreatedAt    time.Time          `bson:"created_at"`
 	UpdatedAt    time.Time          `bson:"updated_at"`
 }

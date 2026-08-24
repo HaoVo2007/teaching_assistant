@@ -100,7 +100,9 @@ func (a *Application) initCloudinary() {
 }
 
 func (a *Application) initRouter() {
-	a.fiberApp = fiber.New()
+	a.fiberApp = fiber.New(fiber.Config{
+		BodyLimit: 10 * 1024 * 1024, // 10MB
+	})
 	httpRouter.NewRouter(a.fiberApp, a.handlers.UserHandler, a.handlers.QuestionHandler, a.jwtManager)
 }
 
