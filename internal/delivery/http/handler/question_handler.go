@@ -7,6 +7,7 @@ import (
 	"teaching_assistant/internal/delivery/http/middleware"
 	"teaching_assistant/internal/delivery/http/request"
 	"teaching_assistant/internal/domain/question"
+	"teaching_assistant/pkg/common"
 	"teaching_assistant/pkg/pagination"
 	"teaching_assistant/pkg/response"
 
@@ -28,11 +29,11 @@ func NewQuestionHandler(questionService question.QuestionService) *QuestionHandl
 func (h *QuestionHandler) CreateQuestion(c *fiber.Ctx) error {
 	userId, err := middleware.UserIDFromCtx(c)
 	if err != nil {
-		return response.Fail(c, fiber.StatusUnauthorized, "Unauthorized", "UNAUTHORIZED")
+		return response.Fail(c, fiber.StatusUnauthorized, string(common.ErrUnauthorized), "UNAUTHORIZED")
 	}
 	var req request.CreateQuestionRequest
 	if err := c.BodyParser(&req); err != nil {
-		return response.Fail(c, fiber.StatusBadRequest, "Invalid request body", "INVALID_REQUEST_BODY")
+		return response.Fail(c, fiber.StatusBadRequest, string(common.ErrBadRequest), "INVALID_REQUEST_BODY")
 	}
 
 	if question.QuestionType(req.Type) == question.QuestionTypeMatching {
@@ -67,11 +68,14 @@ func (h *QuestionHandler) CreateQuestion(c *fiber.Ctx) error {
 func (h *QuestionHandler) GetQuestions(c *fiber.Ctx) error {
 	pageSize := c.QueryInt("page_size", 10)
 	pageIndex := c.QueryInt("page_index", 1)
-
-	params := pagination.New(pageIndex, pageSize)
-	questions, err := h.questionService.GetQuestions(c.UserContext(), params)
+	userId, err := middleware.UserIDFromCtx(c)
 	if err != nil {
-		return response.Fail(c, fiber.StatusInternalServerError, "Internal server error", "INTERNAL_SERVER_ERROR")
+		return response.Fail(c, fiber.StatusUnauthorized, string(common.ErrUnauthorized), "UNAUTHORIZED")
+	}
+	params := pagination.New(pageIndex, pageSize)
+	questions, err := h.questionService.GetQuestions(c.UserContext(), userId, params)
+	if err != nil {
+		return response.Fail(c, fiber.StatusInternalServerError, err.Error(), "INTERNAL_SERVER_ERROR")
 	}
 
 	return response.OK(c, "Questions fetched successfully", questions)
@@ -80,12 +84,12 @@ func (h *QuestionHandler) GetQuestions(c *fiber.Ctx) error {
 func (h *QuestionHandler) GetQuestionById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	if id == "" {
-		return response.Fail(c, fiber.StatusBadRequest, "Invalid question ID", "INVALID_QUESTION_ID")
+		return response.Fail(c, fiber.StatusBadRequest, string(common.ErrBadRequest), "INVALID_QUESTION_ID")
 	}
 
 	question, err := h.questionService.GetQuestionById(c.UserContext(), id)
 	if err != nil {
-		return response.Fail(c, fiber.StatusInternalServerError, "Internal server error", "INTERNAL_SERVER_ERROR")
+		return response.Fail(c, fiber.StatusInternalServerError, err.Error(), "INTERNAL_SERVER_ERROR")
 	}
 
 	return response.OK(c, "Question fetched successfully", question)
@@ -94,17 +98,17 @@ func (h *QuestionHandler) GetQuestionById(c *fiber.Ctx) error {
 func (h *QuestionHandler) UpdateQuestionById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	if id == "" {
-		return response.Fail(c, fiber.StatusBadRequest, "Invalid question ID", "INVALID_QUESTION_ID")
+		return response.Fail(c, fiber.StatusBadRequest, string(common.ErrBadRequest), "INVALID_QUESTION_ID")
 	}
 
 	userId, err := middleware.UserIDFromCtx(c)
 	if err != nil {
-		return response.Fail(c, fiber.StatusUnauthorized, "Unauthorized", "UNAUTHORIZED")
+		return response.Fail(c, fiber.StatusUnauthorized, string(common.ErrUnauthorized), "UNAUTHORIZED")
 	}
 
 	var req request.UpdateQuestionRequest
 	if err := c.BodyParser(&req); err != nil {
-		return response.Fail(c, fiber.StatusBadRequest, "Invalid request body", "INVALID_REQUEST_BODY")
+		return response.Fail(c, fiber.StatusBadRequest, string(common.ErrBadRequest), "INVALID_REQUEST_BODY")
 	}
 
 	if question.QuestionType(req.Type) == question.QuestionTypeMatching {
@@ -139,12 +143,12 @@ func (h *QuestionHandler) UpdateQuestionById(c *fiber.Ctx) error {
 func (h *QuestionHandler) DeleteQuestionById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	if id == "" {
-		return response.Fail(c, fiber.StatusBadRequest, "Invalid question ID", "INVALID_QUESTION_ID")
+		return response.Fail(c, fiber.StatusBadRequest, string(common.ErrBadRequest), "INVALID_QUESTION_ID")
 	}
 
 	userId, err := middleware.UserIDFromCtx(c)
 	if err != nil {
-		return response.Fail(c, fiber.StatusUnauthorized, "Unauthorized", "UNAUTHORIZED")
+		return response.Fail(c, fiber.StatusUnauthorized, string(common.ErrUnauthorized), "UNAUTHORIZED")
 	}
 
 	err = h.questionService.DeleteQuestionById(c.UserContext(), id, userId)

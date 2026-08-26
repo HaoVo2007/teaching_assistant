@@ -26,8 +26,8 @@ func (r *questionRepository) Create(ctx context.Context, question *question.Ques
 	return err
 }
 
-func (r *questionRepository) GetQuestions(ctx context.Context, params pagination.Params) ([]*question.Question, int64, error) {
-	filter := bson.M{}
+func (r *questionRepository) GetQuestions(ctx context.Context, userId string, params pagination.Params) ([]*question.Question, int64, error) {
+	filter := bson.M{"created_by": userId}
 	opts := options.Find().SetSkip(params.Skip()).SetLimit(params.Limit64())
 	opts.SetSort(bson.D{{Key: "created_at", Value: -1}})
 	total, err := r.collection.CountDocuments(ctx, filter)
@@ -61,6 +61,24 @@ func (r *questionRepository) GetQuestionById(ctx context.Context, id primitive.O
 		return nil, err
 	}
 	return &question, nil
+}
+
+func (r *questionRepository) GetQuestionByIds(ctx context.Context, ids []primitive.ObjectID) ([]*question.Question, error) {
+	filter := bson.M{"_id": bson.M{"$in": ids}}
+	cursor, err := r.collection.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+	questions := make([]*question.Question, 0)
+	for cursor.Next(ctx) {
+		var q question.Question
+		if err := cursor.Decode(&q); err != nil {
+			return nil, err
+		}
+		questions = append(questions, &q)
+	}
+	return questions, nil
 }
 
 func (r *questionRepository) Update(ctx context.Context, q *question.Question) error {

@@ -21,6 +21,34 @@ const (
 	Image KindPair = "image"
 )
 
+type Subject string
+
+const (
+	SubjectVietnamese             Subject = "vietnamese"
+	SubjectMathematics            Subject = "mathematics"
+	SubjectEthics                 Subject = "ethics"
+	SubjectEnglish                Subject = "english"
+	SubjectNatureAndSociety       Subject = "nature_and_society"
+	SubjectHistoryAndGeography    Subject = "history_and_geography"
+	SubjectScience                Subject = "science"
+	SubjectInformatics            Subject = "informatics"
+	SubjectTechnology             Subject = "technology"
+	SubjectPhysicalEducation      Subject = "physical_education"
+	SubjectMusic                  Subject = "music"
+	SubjectArt                    Subject = "art"
+	SubjectExperientialActivities Subject = "experiential_activities"
+)
+
+type Grade string
+
+const (
+	Grade1 Grade = "1"
+	Grade2 Grade = "2"
+	Grade3 Grade = "3"
+	Grade4 Grade = "4"
+	Grade5 Grade = "5"
+)
+
 type Question struct {
 	ID           primitive.ObjectID `bson:"_id"`
 	Type         string             `bson:"type"` // multiple_choice, true_false, matching

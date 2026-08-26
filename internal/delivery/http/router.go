@@ -12,6 +12,7 @@ func NewRouter(
 	app *fiber.App,
 	userH *handler.UserHandler,
 	questionH *handler.QuestionHandler,
+	questionSetH *handler.QuestionSetHandler,
 	jwtManager *jwt.Manager,
 ) {
 	api := app.Group("/api/v1")
@@ -35,4 +36,14 @@ func NewRouter(
 		question.Delete("/:id", middleware.AuthMiddleware(jwtManager), questionH.DeleteQuestionById)
 	}
 	// question routes
+
+	// question set routes
+	questionSet := api.Group("/question-sets")
+	{
+		questionSet.Post("", middleware.AuthMiddleware(jwtManager), questionSetH.CreateQuestionSet)
+		questionSet.Get("", middleware.AuthMiddleware(jwtManager), questionSetH.GetQuestionSets)
+		// questionSet.Get("/:id", middleware.AuthMiddleware(jwtManager), questionSetH.GetQuestionSetById)
+		// questionSet.Put("/:id", middleware.AuthMiddleware(jwtManager), questionSetH.UpdateQuestionSetById)
+		// questionSet.Delete("/:id", middleware.AuthMiddleware(jwtManager), questionSetH.DeleteQuestionSetById)
+	}
 }

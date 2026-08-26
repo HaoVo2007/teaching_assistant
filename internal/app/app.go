@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"teaching_assistant/internal/config"
 	"teaching_assistant/internal/domain/question"
+	questionset "teaching_assistant/internal/domain/question_set"
 	"teaching_assistant/internal/domain/user"
 	"teaching_assistant/internal/infrastructure/database"
 	"teaching_assistant/internal/repository/mongodb"
@@ -32,18 +33,21 @@ type Application struct {
 }
 
 type Repositories struct {
-	UserRepository     user.UserRepository
-	QuestionRepository question.QuestionRepository
+	UserRepository        user.UserRepository
+	QuestionRepository    question.QuestionRepository
+	QuestionSetRepository questionset.QuestionSetRepository
 }
 
 type Services struct {
-	UserService     user.UserService
-	QuestionService question.QuestionService
+	UserService        user.UserService
+	QuestionService    question.QuestionService
+	QuestionSetService questionset.QuestionSetService
 }
 
 type Handlers struct {
-	UserHandler     *httpHandler.UserHandler
-	QuestionHandler *httpHandler.QuestionHandler
+	UserHandler        *httpHandler.UserHandler
+	QuestionHandler    *httpHandler.QuestionHandler
+	QuestionSetHandler *httpHandler.QuestionSetHandler
 }
 
 func NewApplication(ctx context.Context, cfg *config.Config) (*Application, error) {
@@ -75,16 +79,19 @@ func (a *Application) initDatabase(ctx context.Context) error {
 func (a *Application) initRepositories() {
 	a.repositories.UserRepository = mongodb.NewUserRepository(a.db)
 	a.repositories.QuestionRepository = mongodb.NewQuestionRepository(a.db)
+	a.repositories.QuestionSetRepository = mongodb.NewQuestionSetRepository(a.db)
 }
 
 func (a *Application) initServices() {
 	a.services.UserService = usecase.NewUserService(a.repositories.UserRepository, a.jwtManager)
 	a.services.QuestionService = usecase.NewQuestionService(a.repositories.QuestionRepository, a.cloudinary)
+	a.services.QuestionSetService = usecase.NewQuestionSetService(a.repositories.QuestionSetRepository, a.repositories.QuestionRepository)
 }
 
 func (a *Application) initHandlers() {
 	a.handlers.UserHandler = httpHandler.NewUserHandler(a.services.UserService)
 	a.handlers.QuestionHandler = httpHandler.NewQuestionHandler(a.services.QuestionService)
+	a.handlers.QuestionSetHandler = httpHandler.NewQuestionSetHandler(a.services.QuestionSetService)
 }
 
 func (a *Application) initJwtManager() {
@@ -103,7 +110,7 @@ func (a *Application) initRouter() {
 	a.fiberApp = fiber.New(fiber.Config{
 		BodyLimit: 10 * 1024 * 1024, // 10MB
 	})
-	httpRouter.NewRouter(a.fiberApp, a.handlers.UserHandler, a.handlers.QuestionHandler, a.jwtManager)
+	httpRouter.NewRouter(a.fiberApp, a.handlers.UserHandler, a.handlers.QuestionHandler, a.handlers.QuestionSetHandler, a.jwtManager)
 }
 
 func (a *Application) Run() error {

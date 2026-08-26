@@ -76,8 +76,8 @@ func (s *questionService) CreateQuestion(ctx context.Context, req request.Create
 	return q, nil
 }
 
-func (s *questionService) GetQuestions(ctx context.Context, params pagination.Params) (*response.QuestionResponseWithMeta, error) {
-	questions, total, err := s.questionRepo.GetQuestions(ctx, params)
+func (s *questionService) GetQuestions(ctx context.Context, userId string, params pagination.Params) (*response.QuestionResponseWithMeta, error) {
+	questions, total, err := s.questionRepo.GetQuestions(ctx, userId, params)
 	if err != nil {
 		return nil, err
 	}
