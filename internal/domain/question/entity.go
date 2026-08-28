@@ -49,6 +49,14 @@ const (
 	Grade5 Grade = "5"
 )
 
+type Difficulty string
+
+const (
+	DifficultyEasy   Difficulty = "easy"
+	DifficultyMedium Difficulty = "medium"
+	DifficultyHard   Difficulty = "hard"
+)
+
 type Question struct {
 	ID           primitive.ObjectID `bson:"_id"`
 	Type         string             `bson:"type"` // multiple_choice, true_false, matching

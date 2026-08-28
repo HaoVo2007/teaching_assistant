@@ -72,8 +72,13 @@ func (h *QuestionHandler) GetQuestions(c *fiber.Ctx) error {
 	if err != nil {
 		return response.Fail(c, fiber.StatusUnauthorized, string(common.ErrUnauthorized), "UNAUTHORIZED")
 	}
+	questionType := c.Query("question_type")
+	questionName := c.Query("question_name")
+	subject := c.Query("subject")
+	grade := c.Query("grade")
+	difficulty := c.Query("difficulty")
 	params := pagination.New(pageIndex, pageSize)
-	questions, err := h.questionService.GetQuestions(c.UserContext(), userId, params)
+	questions, err := h.questionService.GetQuestions(c.UserContext(), userId, params, questionType, questionName, subject, grade, difficulty)
 	if err != nil {
 		return response.Fail(c, fiber.StatusInternalServerError, err.Error(), "INTERNAL_SERVER_ERROR")
 	}

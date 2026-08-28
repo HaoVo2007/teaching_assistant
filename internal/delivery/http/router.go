@@ -13,6 +13,7 @@ func NewRouter(
 	userH *handler.UserHandler,
 	questionH *handler.QuestionHandler,
 	questionSetH *handler.QuestionSetHandler,
+	classH *handler.ClassHandler,
 	jwtManager *jwt.Manager,
 ) {
 	api := app.Group("/api/v1")
@@ -42,8 +43,20 @@ func NewRouter(
 	{
 		questionSet.Post("", middleware.AuthMiddleware(jwtManager), questionSetH.CreateQuestionSet)
 		questionSet.Get("", middleware.AuthMiddleware(jwtManager), questionSetH.GetQuestionSets)
-		// questionSet.Get("/:id", middleware.AuthMiddleware(jwtManager), questionSetH.GetQuestionSetById)
-		// questionSet.Put("/:id", middleware.AuthMiddleware(jwtManager), questionSetH.UpdateQuestionSetById)
-		// questionSet.Delete("/:id", middleware.AuthMiddleware(jwtManager), questionSetH.DeleteQuestionSetById)
+		questionSet.Get("/:id", middleware.AuthMiddleware(jwtManager), questionSetH.GetQuestionSetById)
+		questionSet.Put("/:id", middleware.AuthMiddleware(jwtManager), questionSetH.UpdateQuestionSetById)
+		questionSet.Delete("/:id", middleware.AuthMiddleware(jwtManager), questionSetH.DeleteQuestionSetById)
 	}
+	// question set routes
+
+	// class routes
+	class := api.Group("/classes")
+	{
+		class.Post("", middleware.AuthMiddleware(jwtManager), classH.CreateClass)
+		class.Get("", middleware.AuthMiddleware(jwtManager), classH.GetClasses)
+		class.Get("/:id", middleware.AuthMiddleware(jwtManager), classH.GetClassById)
+		class.Put("/:id", middleware.AuthMiddleware(jwtManager), classH.UpdateClassById)
+		class.Delete("/:id", middleware.AuthMiddleware(jwtManager), classH.DeleteClassById)
+	}
+	// class routes
 }

@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"mime/multipart"
+
 	"teaching_assistant/internal/delivery/http/middleware"
 	"teaching_assistant/internal/delivery/http/request"
-	questionset "teaching_assistant/internal/domain/question_set"
+	"teaching_assistant/internal/domain/class"
 	"teaching_assistant/pkg/common"
 	"teaching_assistant/pkg/pagination"
 	"teaching_assistant/pkg/response"
@@ -11,102 +13,122 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-type QuestionSetHandler struct {
-	questionSetService questionset.QuestionSetService
+const maxClassImageSize = 5 << 20
+
+type ClassHandler struct {
+	classService class.ClassService
 }
 
-func NewQuestionSetHandler(questionSetService questionset.QuestionSetService) *QuestionSetHandler {
-	return &QuestionSetHandler{
-		questionSetService: questionSetService,
+func NewClassHandler(classService class.ClassService) *ClassHandler {
+	return &ClassHandler{
+		classService: classService,
 	}
 }
 
-func (h *QuestionSetHandler) CreateQuestionSet(c *fiber.Ctx) error {
+func (h *ClassHandler) CreateClass(c *fiber.Ctx) error {
 	userId, err := middleware.UserIDFromCtx(c)
 	if err != nil {
 		return response.Fail(c, fiber.StatusUnauthorized, string(common.ErrUnauthorized), "UNAUTHORIZED")
 	}
 
-	var req request.CreateQuestionSetRequest
+	var req request.CreateClassRequest
 	if err := c.BodyParser(&req); err != nil {
 		return response.Fail(c, fiber.StatusBadRequest, string(common.ErrBadRequest), "INVALID_REQUEST_BODY")
 	}
 
-	err = h.questionSetService.CreateQuestionSet(c.Context(), userId, req)
+	if err := bindClassImage(c, &req.Image); err != nil {
+		return response.Fail(c, fiber.StatusBadRequest, err.Error(), "INVALID_IMAGE")
+	}
+
+	err = h.classService.CreateClass(c.UserContext(), userId, req)
 	if err != nil {
 		return response.Fail(c, fiber.StatusInternalServerError, err.Error(), "INTERNAL_SERVER_ERROR")
 	}
 
-	return response.OK(c, "Question set created successfully", nil)
+	return response.Created(c, "Class created successfully", nil)
 }
 
-func (h *QuestionSetHandler) GetQuestionSets(c *fiber.Ctx) error {
+func (h *ClassHandler) GetClasses(c *fiber.Ctx) error {
 	userId, err := middleware.UserIDFromCtx(c)
 	if err != nil {
 		return response.Fail(c, fiber.StatusUnauthorized, string(common.ErrUnauthorized), "UNAUTHORIZED")
 	}
 
-	title := c.Query("title")
-	questionType := c.Query("question_type")
-
+	name := c.Query("name")
 	pageSize := c.QueryInt("page_size", 10)
 	pageIndex := c.QueryInt("page_index", 1)
 	params := pagination.New(pageIndex, pageSize)
 
-	questionSets, err := h.questionSetService.GetQuestionSets(c.UserContext(), userId, params, title, questionType)
+	classes, err := h.classService.GetClasses(c.UserContext(), userId, params, name)
 	if err != nil {
 		return response.Fail(c, fiber.StatusInternalServerError, err.Error(), "INTERNAL_SERVER_ERROR")
 	}
 
-	return response.OK(c, "Question sets fetched successfully", questionSets)
+	return response.OK(c, "Classes fetched successfully", classes)
 }
 
-func (h *QuestionSetHandler) GetQuestionSetById(c *fiber.Ctx) error {
+func (h *ClassHandler) GetClassById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	userId, err := middleware.UserIDFromCtx(c)
 	if err != nil {
 		return response.Fail(c, fiber.StatusUnauthorized, string(common.ErrUnauthorized), "UNAUTHORIZED")
 	}
 
-	questionSet, err := h.questionSetService.GetQuestionSetById(c.UserContext(), userId, id)
+	item, err := h.classService.GetClassById(c.UserContext(), userId, id)
 	if err != nil {
 		return response.Fail(c, fiber.StatusInternalServerError, err.Error(), "INTERNAL_SERVER_ERROR")
 	}
 
-	return response.OK(c, "Question set fetched successfully", questionSet)
+	return response.OK(c, "Class fetched successfully", item)
 }
 
-func (h *QuestionSetHandler) UpdateQuestionSetById(c *fiber.Ctx) error {
+func (h *ClassHandler) UpdateClassById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	userId, err := middleware.UserIDFromCtx(c)
 	if err != nil {
 		return response.Fail(c, fiber.StatusUnauthorized, string(common.ErrUnauthorized), "UNAUTHORIZED")
 	}
 
-	var req request.UpdateQuestionSetRequest
+	var req request.UpdateClassRequest
 	if err := c.BodyParser(&req); err != nil {
 		return response.Fail(c, fiber.StatusBadRequest, string(common.ErrBadRequest), "INVALID_REQUEST_BODY")
 	}
 
-	err = h.questionSetService.UpdateQuestionSetById(c.UserContext(), userId, id, req)
+	if err := bindClassImage(c, &req.Image); err != nil {
+		return response.Fail(c, fiber.StatusBadRequest, err.Error(), "INVALID_IMAGE")
+	}
+
+	err = h.classService.UpdateClassById(c.UserContext(), userId, id, req)
 	if err != nil {
 		return response.Fail(c, fiber.StatusInternalServerError, err.Error(), "INTERNAL_SERVER_ERROR")
 	}
 
-	return response.OK(c, "Question set updated successfully", nil)
+	return response.OK(c, "Class updated successfully", nil)
 }
 
-func (h *QuestionSetHandler) DeleteQuestionSetById(c *fiber.Ctx) error {
+func (h *ClassHandler) DeleteClassById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	userId, err := middleware.UserIDFromCtx(c)
 	if err != nil {
 		return response.Fail(c, fiber.StatusUnauthorized, string(common.ErrUnauthorized), "UNAUTHORIZED")
 	}
 
-	err = h.questionSetService.DeleteQuestionSetById(c.UserContext(), userId, id)
+	err = h.classService.DeleteClassById(c.UserContext(), userId, id)
 	if err != nil {
 		return response.Fail(c, fiber.StatusInternalServerError, err.Error(), "INTERNAL_SERVER_ERROR")
 	}
 
-	return response.OK(c, "Question set deleted successfully", nil)
+	return response.OK(c, "Class deleted successfully", nil)
+}
+
+func bindClassImage(c *fiber.Ctx, dest **multipart.FileHeader) error {
+	header, err := c.FormFile("image")
+	if err != nil {
+		return nil
+	}
+	if header.Size > maxClassImageSize {
+		return class.ErrImageTooLarge
+	}
+	*dest = header
+	return nil
 }

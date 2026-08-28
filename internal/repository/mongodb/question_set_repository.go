@@ -6,6 +6,7 @@ import (
 	"teaching_assistant/pkg/pagination"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -28,8 +29,14 @@ func (r *questionSetRepository) Create(ctx context.Context, questionSet *questio
 	return nil
 }
 
-func (r *questionSetRepository) GetQuestionSets(ctx context.Context, userId string, params pagination.Params) ([]*questionset.QuestionSet, int64, error) {
+func (r *questionSetRepository) GetQuestionSets(ctx context.Context, userId string, params pagination.Params, title string, questionType string) ([]*questionset.QuestionSet, int64, error) {
 	filter := bson.M{"created_by": userId}
+	if title != "" {
+		filter["title"] = bson.M{"$regex": title, "$options": "i"}
+	}
+	if questionType != "" {
+		filter["question_type"] = questionType
+	}
 	opts := options.Find().SetSkip(params.Skip()).SetLimit(params.Limit64())
 	opts.SetSort(bson.D{{Key: "created_at", Value: -1}})
 	total, err := r.collection.CountDocuments(ctx, filter)
@@ -50,4 +57,32 @@ func (r *questionSetRepository) GetQuestionSets(ctx context.Context, userId stri
 		questionSets = append(questionSets, &questionSet)
 	}
 	return questionSets, total, nil
+}
+
+func (r *questionSetRepository) GetQuestionSetById(ctx context.Context, id primitive.ObjectID) (*questionset.QuestionSet, error) {
+	filter := bson.M{"_id": id}
+	var questionSet questionset.QuestionSet
+	err := r.collection.FindOne(ctx, filter).Decode(&questionSet)
+	if err != nil {
+		return nil, err
+	}
+	return &questionSet, nil
+}
+
+func (r *questionSetRepository) UpdateQuestionSetById(ctx context.Context, id primitive.ObjectID, questionSet *questionset.QuestionSet) error {
+	filter := bson.M{"_id": id}
+	_, err := r.collection.UpdateOne(ctx, filter, bson.M{"$set": questionSet})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *questionSetRepository) DeleteQuestionSetById(ctx context.Context, id primitive.ObjectID) error {
+	filter := bson.M{"_id": id}
+	_, err := r.collection.DeleteOne(ctx, filter)
+	if err != nil {
+		return err
+	}
+	return nil
 }

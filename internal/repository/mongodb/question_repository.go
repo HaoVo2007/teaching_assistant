@@ -26,8 +26,23 @@ func (r *questionRepository) Create(ctx context.Context, question *question.Ques
 	return err
 }
 
-func (r *questionRepository) GetQuestions(ctx context.Context, userId string, params pagination.Params) ([]*question.Question, int64, error) {
+func (r *questionRepository) GetQuestions(ctx context.Context, userId string, params pagination.Params, questionType, questionName, subject, grade, difficulty string) ([]*question.Question, int64, error) {
 	filter := bson.M{"created_by": userId}
+	if questionType != "" {
+		filter["type"] = questionType
+	}
+	if questionName != "" {
+		filter["question"] = bson.M{"$regex": questionName, "$options": "i"}
+	}
+	if subject != "" {
+		filter["subject"] = subject
+	}
+	if grade != "" {
+		filter["grade"] = grade
+	}
+	if difficulty != "" {
+		filter["difficulty"] = difficulty
+	}
 	opts := options.Find().SetSkip(params.Skip()).SetLimit(params.Limit64())
 	opts.SetSort(bson.D{{Key: "created_at", Value: -1}})
 	total, err := r.collection.CountDocuments(ctx, filter)

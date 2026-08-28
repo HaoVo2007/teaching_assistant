@@ -6,12 +6,13 @@ import (
 )
 
 type QuestionSetResponse struct {
-	ID          string              `json:"id"`
-	Title       string              `json:"title"`
-	Description *string             `json:"description"`
-	Questions   []*QuestionResponse `json:"questions"`
-	CreatedAt   time.Time           `json:"created_at"`
-	UpdatedAt   time.Time           `json:"updated_at"`
+	ID           string              `json:"id"`
+	Title        string              `json:"title"`
+	QuestionType string              `json:"question_type"`
+	Description  *string             `json:"description"`
+	Questions    []*QuestionResponse `json:"questions"`
+	CreatedAt    time.Time           `json:"created_at"`
+	UpdatedAt    time.Time           `json:"updated_at"`
 }
 
 type QuestionSetResponseWithMeta struct {
