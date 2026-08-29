@@ -18,7 +18,7 @@ func NewRouter(
 	jwtManager *jwt.Manager,
 ) {
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://localhost:5173",
+		AllowOrigins:     "http://localhost:5173,https://teachingassistantfe.netlify.app",
 		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
 		AllowCredentials: true,
