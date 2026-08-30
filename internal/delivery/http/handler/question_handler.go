@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"mime/multipart"
 
@@ -170,7 +171,7 @@ func pairImage(c *fiber.Ctx, index int, side string) (*multipart.FileHeader, err
 		return nil, nil
 	}
 	if header.Size > maxPairImageSize {
-		return nil, question.ErrImageTooLarge
+		return nil, errors.New(string(question.ErrImageTooLarge))
 	}
 	return header, nil
 }

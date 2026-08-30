@@ -86,3 +86,7 @@ func (r *questionSetRepository) DeleteQuestionSetById(ctx context.Context, id pr
 	}
 	return nil
 }
+
+func (r *questionSetRepository) CountByQuestionID(ctx context.Context, questionID string) (int64, error) {
+	return r.collection.CountDocuments(ctx, bson.M{"question_ids": questionID})
+}

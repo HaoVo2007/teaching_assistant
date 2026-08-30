@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"strings"
 
 	"teaching_assistant/internal/domain/user"
@@ -33,7 +34,7 @@ func AuthMiddleware(jwtManager *jwt.Manager) fiber.Handler {
 func UserIDFromCtx(c *fiber.Ctx) (string, error) {
 	id, ok := c.Locals("user_id").(string)
 	if !ok || id == "" {
-		return "", user.ErrUnauthorized
+		return "", errors.New(string(user.ErrUnauthorized))
 	}
 	return id, nil
 }

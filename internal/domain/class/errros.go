@@ -9,6 +9,7 @@ const (
 	ErrClassNotAuthorized Error = "class not authorized"
 	ErrUnauthorized       Error = "unauthorized"
 	ErrImageTooLarge      Error = "image too large"
+	ErrClassInUse         Error = "class has homeworks"
 )
 
 func (e Error) Error() string {

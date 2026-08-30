@@ -2,13 +2,17 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"mime/multipart"
 	"time"
 
 	"teaching_assistant/internal/delivery/http/mapper"
 	"teaching_assistant/internal/delivery/http/request"
 	"teaching_assistant/internal/delivery/http/response"
+	"teaching_assistant/internal/domain/homework"
+	homeworksubmission "teaching_assistant/internal/domain/homework_submission"
 	"teaching_assistant/internal/domain/question"
+	questionset "teaching_assistant/internal/domain/question_set"
 	"teaching_assistant/pkg/pagination"
 
 	infrastructureCloudinary "teaching_assistant/internal/infrastructure/cloudinary"
@@ -17,31 +21,40 @@ import (
 )
 
 type questionService struct {
-	questionRepo question.QuestionRepository
-	cloudinary   *infrastructureCloudinary.CloudinaryUploader
+	questionRepo    question.QuestionRepository
+	questionSetRepo questionset.QuestionSetRepository
+	homeworkRepo    homework.HomeworkRepository
+	submissionRepo  homeworksubmission.HomeworkSubmissionRepository
+	cloudinary      *infrastructureCloudinary.CloudinaryUploader
 }
 
 func NewQuestionService(
 	questionRepo question.QuestionRepository,
+	questionSetRepo questionset.QuestionSetRepository,
+	homeworkRepo homework.HomeworkRepository,
+	submissionRepo homeworksubmission.HomeworkSubmissionRepository,
 	cloudinary *infrastructureCloudinary.CloudinaryUploader,
 ) question.QuestionService {
 	return &questionService{
-		questionRepo: questionRepo,
-		cloudinary:   cloudinary,
+		questionRepo:    questionRepo,
+		questionSetRepo: questionSetRepo,
+		homeworkRepo:    homeworkRepo,
+		submissionRepo:  submissionRepo,
+		cloudinary:      cloudinary,
 	}
 }
 
 func (s *questionService) CreateQuestion(ctx context.Context, req request.CreateQuestionRequest, userId string) (*question.Question, error) {
 	if req.Type == "" {
-		return nil, question.ErrInvalidType
+		return nil, errors.New(string(question.ErrInvalidType))
 	}
 
 	if req.Subject == "" {
-		return nil, question.ErrInvalidSubject
+		return nil, errors.New(string(question.ErrInvalidSubject))
 	}
 
 	if req.Grade == "" {
-		return nil, question.ErrInvalidGrade
+		return nil, errors.New(string(question.ErrInvalidGrade))
 	}
 
 	pairs := make([]question.Pair, 0, len(req.Pairs))
@@ -116,11 +129,21 @@ func (s *questionService) UpdateQuestionById(ctx context.Context, id string, req
 	}
 
 	if questionRes == nil {
-		return nil, question.ErrQuestionNotFound
+		return nil, errors.New(string(question.ErrQuestionNotFound))
 	}
 
 	if questionRes.CreatedBy != userId {
 		return nil, question.ErrUnauthorized
+	}
+
+	if scoringFieldsChanging(questionRes, req) {
+		inUse, err := s.questionUsedInSubmissions(ctx, questionRes.ID.Hex())
+		if err != nil {
+			return nil, err
+		}
+		if inUse {
+			return nil, question.ErrQuestionInUse
+		}
 	}
 
 	if req.Type != "" {
@@ -213,6 +236,14 @@ func (s *questionService) DeleteQuestionById(ctx context.Context, id string, use
 		return question.ErrUnauthorized
 	}
 
+	inUse, err := s.questionIsReferenced(ctx, questionRes.ID.Hex())
+	if err != nil {
+		return err
+	}
+	if inUse {
+		return question.ErrQuestionInUse
+	}
+
 	if err := s.questionRepo.Delete(ctx, objectId); err != nil {
 		return err
 	}
@@ -283,7 +314,7 @@ func (s *questionService) resolveSide(
 		if oldKind == string(question.Image) && oldValue != "" {
 			return pairSide{value: oldValue, publicID: oldPublicID, kind: string(question.Image)}, nil, nil
 		}
-		return pairSide{}, nil, question.ErrInvalidPairs
+		return pairSide{}, nil, errors.New(string(question.ErrInvalidPairs))
 	}
 
 	var stale []string
@@ -302,13 +333,84 @@ func (s *questionService) uploadFile(ctx context.Context, header *multipart.File
 	return s.cloudinary.UploadImage(ctx, src, "questions")
 }
 
-func stalePublicIDs(p question.Pair) []string {
-	var ids []string
-	if p.LeftPublicID != "" {
-		ids = append(ids, p.LeftPublicID)
+func (s *questionService) questionIsReferenced(ctx context.Context, questionID string) (bool, error) {
+	setCount, err := s.questionSetRepo.CountByQuestionID(ctx, questionID)
+	if err != nil {
+		return false, err
 	}
-	if p.RightPublicID != "" {
-		ids = append(ids, p.RightPublicID)
+	if setCount > 0 {
+		return true, nil
 	}
-	return ids
+
+	homeworkCount, err := s.homeworkRepo.CountByQuestionID(ctx, questionID)
+	if err != nil {
+		return false, err
+	}
+	if homeworkCount > 0 {
+		return true, nil
+	}
+
+	return s.questionUsedInSubmissions(ctx, questionID)
+}
+
+func (s *questionService) questionUsedInSubmissions(ctx context.Context, questionID string) (bool, error) {
+	count, err := s.submissionRepo.CountByQuestionID(ctx, questionID)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func scoringFieldsChanging(q *question.Question, req request.UpdateQuestionRequest) bool {
+	if req.Type != "" && req.Type != q.Type {
+		return true
+	}
+	if req.Difficulty != "" && req.Difficulty != q.Difficulty {
+		return true
+	}
+	if len(req.Options) > 0 && !sameStrings(req.Options, q.Options) {
+		return true
+	}
+	if req.CorrectIndex != nil && !sameIntPtr(req.CorrectIndex, q.CorrectIndex) {
+		return true
+	}
+	if req.CorrectBool != nil && !sameBoolPtr(req.CorrectBool, q.CorrectBool) {
+		return true
+	}
+	if len(req.Pairs) > 0 {
+		return true
+	}
+	return false
+}
+
+func sameStrings(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func sameIntPtr(a, b *int) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return *a == *b
+}
+
+func sameBoolPtr(a, b *bool) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return *a == *b
 }

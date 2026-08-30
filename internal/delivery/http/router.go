@@ -15,6 +15,8 @@ func NewRouter(
 	questionH *handler.QuestionHandler,
 	questionSetH *handler.QuestionSetHandler,
 	classH *handler.ClassHandler,
+	homeworkH *handler.HomeworkHandler,
+	homeworkSubmissionH *handler.HomeworkSubmissionHandler,
 	jwtManager *jwt.Manager,
 ) {
 	app.Use(cors.New(cors.Config{
@@ -67,4 +69,28 @@ func NewRouter(
 		class.Delete("/:id", middleware.AuthMiddleware(jwtManager), classH.DeleteClassById)
 	}
 	// class routes
+
+	// homework routes
+	homework := api.Group("/homeworks")
+	{
+		homework.Post("", middleware.AuthMiddleware(jwtManager), homeworkH.CreateHomework)
+		homework.Get("", middleware.AuthMiddleware(jwtManager), homeworkH.GetHomeworks)
+		homework.Get("/:id", middleware.AuthMiddleware(jwtManager), homeworkH.GetHomeworkById)
+		homework.Put("/:id", middleware.AuthMiddleware(jwtManager), homeworkH.UpdateHomeworkById)
+		homework.Delete("/:id", middleware.AuthMiddleware(jwtManager), homeworkH.DeleteHomeworkById)
+		homework.Get("/class/:class_id", middleware.AuthMiddleware(jwtManager), homeworkH.GetHomeworksByClassId)
+	}
+	// homework routes
+
+	// homework submission routes
+	homeworkSubmission := api.Group("/homework-submissions")
+	{
+		homeworkSubmission.Post("", homeworkSubmissionH.CreateHomeworkSubmission)
+		homeworkSubmission.Get("", middleware.AuthMiddleware(jwtManager), homeworkSubmissionH.GetHomeworkSubmissions)
+		homeworkSubmission.Get("/:id", middleware.AuthMiddleware(jwtManager), homeworkSubmissionH.GetHomeworkSubmissionById)
+		// homeworkSubmission.Put("/:id", middleware.AuthMiddleware(jwtManager), homeworkSubmissionH.UpdateHomeworkSubmissionById)
+		// homeworkSubmission.Delete("/:id", middleware.AuthMiddleware(jwtManager), homeworkSubmissionH.DeleteHomeworkSubmissionById)
+		homeworkSubmission.Get("/homework/:homework_id", middleware.AuthMiddleware(jwtManager), homeworkSubmissionH.GetHomeworkSubmissionsByHomeworkId)
+	}
+	// homework submission routes
 }

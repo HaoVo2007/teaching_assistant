@@ -13,4 +13,5 @@ type QuestionSetRepository interface {
 	GetQuestionSetById(ctx context.Context, id primitive.ObjectID) (*QuestionSet, error)
 	UpdateQuestionSetById(ctx context.Context, id primitive.ObjectID, questionSet *QuestionSet) error
 	DeleteQuestionSetById(ctx context.Context, id primitive.ObjectID) error
+	CountByQuestionID(ctx context.Context, questionID string) (int64, error)
 }

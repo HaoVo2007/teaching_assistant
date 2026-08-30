@@ -12,3 +12,7 @@ const (
 	ErrInvalidQuestionTypeForQuestion Error = "invalid question type for question"
 	ErrUnauthorized                   Error = "unauthorized"
 )
+
+func (e Error) Error() string {
+	return string(e)
+}

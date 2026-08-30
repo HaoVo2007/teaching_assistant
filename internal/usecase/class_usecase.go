@@ -8,6 +8,7 @@ import (
 	"teaching_assistant/internal/delivery/http/request"
 	"teaching_assistant/internal/delivery/http/response"
 	"teaching_assistant/internal/domain/class"
+	"teaching_assistant/internal/domain/homework"
 	infrastructureCloudinary "teaching_assistant/internal/infrastructure/cloudinary"
 	"teaching_assistant/pkg/pagination"
 	"time"
@@ -16,17 +17,20 @@ import (
 )
 
 type classUsecase struct {
-	classRepo  class.ClassRepository
-	cloudinary *infrastructureCloudinary.CloudinaryUploader
+	classRepo    class.ClassRepository
+	homeworkRepo homework.HomeworkRepository
+	cloudinary   *infrastructureCloudinary.CloudinaryUploader
 }
 
 func NewClassUsecase(
 	classRepo class.ClassRepository,
+	homeworkRepo homework.HomeworkRepository,
 	cloudinary *infrastructureCloudinary.CloudinaryUploader,
 ) class.ClassService {
 	return &classUsecase{
-		classRepo:  classRepo,
-		cloudinary: cloudinary,
+		classRepo:    classRepo,
+		homeworkRepo: homeworkRepo,
+		cloudinary:   cloudinary,
 	}
 }
 
@@ -117,6 +121,14 @@ func (u *classUsecase) DeleteClassById(ctx context.Context, userId string, id st
 	item, err := u.getOwnedClass(ctx, userId, id)
 	if err != nil {
 		return err
+	}
+
+	homeworkCount, err := u.homeworkRepo.CountByClassID(ctx, item.ID.Hex())
+	if err != nil {
+		return err
+	}
+	if homeworkCount > 0 {
+		return class.ErrClassInUse
 	}
 
 	if err := u.classRepo.DeleteClassById(ctx, item.ID); err != nil {

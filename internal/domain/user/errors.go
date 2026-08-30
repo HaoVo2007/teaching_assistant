@@ -1,35 +1,30 @@
 package user
 
-import "errors"
+type Error string
 
-var (
-	// lookup / uniqueness
-	ErrUserNotFound       = errors.New("user not found")
-	ErrUserAlreadyExists  = errors.New("user already exists")
-	ErrEmailAlreadyExists = errors.New("email already exists")
+const (
+	ErrUserNotFound       Error = "user not found"
+	ErrUserAlreadyExists  Error = "user already exists"
+	ErrEmailAlreadyExists Error = "email already exists"
 
-	// validation input
-	ErrInvalidEmail    = errors.New("invalid email")
-	ErrInvalidPassword = errors.New("invalid password")
-	ErrInvalidUsername = errors.New("invalid username")
-	ErrInvalidName     = errors.New("invalid name")
-	ErrInvalidRole     = errors.New("invalid role")
+	ErrInvalidEmail    Error = "invalid email"
+	ErrInvalidPassword Error = "invalid password"
+	ErrInvalidUsername Error = "invalid username"
+	ErrInvalidName     Error = "invalid name"
+	ErrInvalidRole     Error = "invalid role"
 
-	// auth / credentials
-	ErrInvalidCredentials = errors.New("invalid credentials")
-	ErrWrongPassword      = errors.New("wrong password")
-	ErrPasswordMismatch   = errors.New("password confirmation does not match")
-	ErrPasswordTooWeak    = errors.New("password is too weak")
+	ErrInvalidCredentials Error = "invalid credentials"
+	ErrWrongPassword      Error = "wrong password"
+	ErrPasswordMismatch   Error = "password confirmation does not match"
+	ErrPasswordTooWeak    Error = "password is too weak"
 
-	// account state
-	ErrUserInactive      = errors.New("user is inactive")
-	ErrUserBanned        = errors.New("user is banned")
-	ErrUserAlreadyActive = errors.New("user is already active")
+	ErrUserInactive      Error = "user is inactive"
+	ErrUserBanned        Error = "user is banned"
+	ErrUserAlreadyActive Error = "user is already active"
 
-	// authorization / business rules
-	ErrUnauthorized           = errors.New("unauthorized")
-	ErrForbidden              = errors.New("forbidden")
-	ErrCannotDeleteSelf       = errors.New("cannot delete own account")
-	ErrCannotChangeOwnRole    = errors.New("cannot change own role")
-	ErrInsufficientPermission = errors.New("insufficient permission")
+	ErrUnauthorized           Error = "unauthorized"
+	ErrForbidden              Error = "forbidden"
+	ErrCannotDeleteSelf       Error = "cannot delete own account"
+	ErrCannotChangeOwnRole    Error = "cannot change own role"
+	ErrInsufficientPermission Error = "insufficient permission"
 )

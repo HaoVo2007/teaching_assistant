@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"teaching_assistant/internal/delivery/http/mapper"
 	"teaching_assistant/internal/delivery/http/request"
 	"teaching_assistant/internal/delivery/http/response"
@@ -30,15 +31,15 @@ func NewUserService(
 
 func (s *userService) Register(ctx context.Context, req request.CreateUserRequest) (*response.AuthResponse, error) {
 	if req.Username == "" {
-		return nil, user.ErrInvalidName
+		return nil, errors.New(string(user.ErrInvalidName))
 	}
 
 	if req.Email == "" {
-		return nil, user.ErrInvalidEmail
+		return nil, errors.New(string(user.ErrInvalidEmail))
 	}
 
 	if req.Password == "" {
-		return nil, user.ErrInvalidPassword
+		return nil, errors.New(string(user.ErrInvalidPassword))
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
@@ -73,11 +74,11 @@ func (s *userService) Register(ctx context.Context, req request.CreateUserReques
 
 func (s *userService) Login(ctx context.Context, req request.LoginUserRequest) (*response.AuthResponse, error) {
 	if req.Email == "" {
-		return nil, user.ErrInvalidEmail
+		return nil, errors.New(string(user.ErrInvalidEmail))
 	}
 
 	if req.Password == "" {
-		return nil, user.ErrInvalidPassword
+		return nil, errors.New(string(user.ErrInvalidPassword))
 	}
 
 	userRes, err := s.userRepo.FindByEmail(ctx, req.Email)
@@ -86,7 +87,7 @@ func (s *userService) Login(ctx context.Context, req request.LoginUserRequest) (
 	}
 
 	if userRes == nil {
-		return nil, user.ErrUserNotFound
+		return nil, errors.New(string(user.ErrUserNotFound))
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(userRes.Password), []byte(req.Password)); err != nil {
@@ -106,7 +107,7 @@ func (s *userService) Login(ctx context.Context, req request.LoginUserRequest) (
 
 func (s *userService) Logout(ctx context.Context, userId string) error {
 	if userId == "" {
-		return user.ErrUnauthorized
+		return errors.New(string(user.ErrUnauthorized))
 	}
 
 	objectId, err := primitive.ObjectIDFromHex(userId)
@@ -120,7 +121,7 @@ func (s *userService) Logout(ctx context.Context, userId string) error {
 	}
 
 	if userRes == nil {
-		return user.ErrUserNotFound
+		return errors.New(string(user.ErrUserNotFound))
 	}
 
 	return nil

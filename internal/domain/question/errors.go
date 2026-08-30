@@ -1,16 +1,21 @@
 package question
 
-import "errors"
+type Error string
 
-var (
-	ErrInvalidType      = errors.New("invalid question type")
-	ErrInvalidQuestion  = errors.New("invalid question")
-	ErrInvalidOptions   = errors.New("invalid options")
-	ErrInvalidCorrect   = errors.New("invalid correct answer")
-	ErrInvalidPairs     = errors.New("invalid matching pairs")
-	ErrImageTooLarge    = errors.New("image too large")
-	ErrQuestionNotFound = errors.New("question not found")
-	ErrInvalidSubject   = errors.New("invalid subject")
-	ErrInvalidGrade     = errors.New("invalid grade")
-	ErrUnauthorized     = errors.New("unauthorized")
+const (
+	ErrInvalidType      Error = "invalid question type"
+	ErrInvalidQuestion  Error = "invalid question"
+	ErrInvalidOptions   Error = "invalid options"
+	ErrInvalidCorrect   Error = "invalid correct answer"
+	ErrInvalidPairs     Error = "invalid matching pairs"
+	ErrImageTooLarge    Error = "image too large"
+	ErrQuestionNotFound Error = "question not found"
+	ErrInvalidSubject   Error = "invalid subject"
+	ErrInvalidGrade     Error = "invalid grade"
+	ErrUnauthorized     Error = "unauthorized"
+	ErrQuestionInUse    Error = "question is used in a set, homework, or submission"
 )
+
+func (e Error) Error() string {
+	return string(e)
+}
