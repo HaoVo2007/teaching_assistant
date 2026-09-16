@@ -20,7 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type questionService struct {
+type questionUsecase struct {
 	questionRepo    question.QuestionRepository
 	questionSetRepo questionset.QuestionSetRepository
 	homeworkRepo    homework.HomeworkRepository
@@ -28,14 +28,14 @@ type questionService struct {
 	cloudinary      *infrastructureCloudinary.CloudinaryUploader
 }
 
-func NewQuestionService(
+func NewQuestionUsecase(
 	questionRepo question.QuestionRepository,
 	questionSetRepo questionset.QuestionSetRepository,
 	homeworkRepo homework.HomeworkRepository,
 	submissionRepo homeworksubmission.HomeworkSubmissionRepository,
 	cloudinary *infrastructureCloudinary.CloudinaryUploader,
 ) question.QuestionService {
-	return &questionService{
+	return &questionUsecase{
 		questionRepo:    questionRepo,
 		questionSetRepo: questionSetRepo,
 		homeworkRepo:    homeworkRepo,
@@ -44,7 +44,7 @@ func NewQuestionService(
 	}
 }
 
-func (s *questionService) CreateQuestion(ctx context.Context, req request.CreateQuestionRequest, userId string) (*question.Question, error) {
+func (s *questionUsecase) CreateQuestion(ctx context.Context, req request.CreateQuestionRequest, userId string) (*question.Question, error) {
 	if req.Type == "" {
 		return nil, errors.New(string(question.ErrInvalidType))
 	}
@@ -89,7 +89,7 @@ func (s *questionService) CreateQuestion(ctx context.Context, req request.Create
 	return q, nil
 }
 
-func (s *questionService) GetQuestions(ctx context.Context, userId string, params pagination.Params, questionType, questionName, subject, grade, difficulty string) (*response.QuestionResponseWithMeta, error) {
+func (s *questionUsecase) GetQuestions(ctx context.Context, userId string, params pagination.Params, questionType, questionName, subject, grade, difficulty string) (*response.QuestionResponseWithMeta, error) {
 	questions, total, err := s.questionRepo.GetQuestions(ctx, userId, params, questionType, questionName, subject, grade, difficulty)
 	if err != nil {
 		return nil, err
@@ -103,7 +103,7 @@ func (s *questionService) GetQuestions(ctx context.Context, userId string, param
 	}, nil
 }
 
-func (s *questionService) GetQuestionById(ctx context.Context, id string) (*response.QuestionResponse, error) {
+func (s *questionUsecase) GetQuestionById(ctx context.Context, id string) (*response.QuestionResponse, error) {
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
@@ -117,7 +117,7 @@ func (s *questionService) GetQuestionById(ctx context.Context, id string) (*resp
 	return mapper.MapQuestionToResponse(question), nil
 }
 
-func (s *questionService) UpdateQuestionById(ctx context.Context, id string, req request.UpdateQuestionRequest, userId string) (*question.Question, error) {
+func (s *questionUsecase) UpdateQuestionById(ctx context.Context, id string, req request.UpdateQuestionRequest, userId string) (*question.Question, error) {
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
@@ -217,7 +217,7 @@ func (s *questionService) UpdateQuestionById(ctx context.Context, id string, req
 	return questionRes, nil
 }
 
-func (s *questionService) DeleteQuestionById(ctx context.Context, id string, userId string) error {
+func (s *questionUsecase) DeleteQuestionById(ctx context.Context, id string, userId string) error {
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return err
@@ -262,7 +262,7 @@ func (s *questionService) DeleteQuestionById(ctx context.Context, id string, use
 	return nil
 }
 
-func (s *questionService) buildPair(ctx context.Context, p request.PairRequest, old question.Pair) (question.Pair, []string, error) {
+func (s *questionUsecase) buildPair(ctx context.Context, p request.PairRequest, old question.Pair) (question.Pair, []string, error) {
 	pair := question.Pair{}
 	var stale []string
 
@@ -293,7 +293,7 @@ type pairSide struct {
 	kind     string
 }
 
-func (s *questionService) resolveSide(
+func (s *questionUsecase) resolveSide(
 	ctx context.Context,
 	kind, text string,
 	file *multipart.FileHeader,
@@ -324,7 +324,7 @@ func (s *questionService) resolveSide(
 	return pairSide{value: text, publicID: "", kind: string(question.Text)}, stale, nil
 }
 
-func (s *questionService) uploadFile(ctx context.Context, header *multipart.FileHeader) (string, string, error) {
+func (s *questionUsecase) uploadFile(ctx context.Context, header *multipart.FileHeader) (string, string, error) {
 	src, err := header.Open()
 	if err != nil {
 		return "", "", err
@@ -333,7 +333,7 @@ func (s *questionService) uploadFile(ctx context.Context, header *multipart.File
 	return s.cloudinary.UploadImage(ctx, src, "questions")
 }
 
-func (s *questionService) questionIsReferenced(ctx context.Context, questionID string) (bool, error) {
+func (s *questionUsecase) questionIsReferenced(ctx context.Context, questionID string) (bool, error) {
 	setCount, err := s.questionSetRepo.CountByQuestionID(ctx, questionID)
 	if err != nil {
 		return false, err
@@ -353,7 +353,7 @@ func (s *questionService) questionIsReferenced(ctx context.Context, questionID s
 	return s.questionUsedInSubmissions(ctx, questionID)
 }
 
-func (s *questionService) questionUsedInSubmissions(ctx context.Context, questionID string) (bool, error) {
+func (s *questionUsecase) questionUsedInSubmissions(ctx context.Context, questionID string) (bool, error) {
 	count, err := s.submissionRepo.CountByQuestionID(ctx, questionID)
 	if err != nil {
 		return false, err

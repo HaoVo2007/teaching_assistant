@@ -14,22 +14,22 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type userService struct {
+type userUsecase struct {
 	userRepo   user.UserRepository
 	jwtManager *jwt.Manager
 }
 
-func NewUserService(
+func NewUserUsecase(
 	userRepo user.UserRepository,
 	jwtManager *jwt.Manager,
 ) user.UserService {
-	return &userService{
+	return &userUsecase{
 		userRepo:   userRepo,
 		jwtManager: jwtManager,
 	}
 }
 
-func (s *userService) Register(ctx context.Context, req request.CreateUserRequest) (*response.AuthResponse, error) {
+func (s *userUsecase) Register(ctx context.Context, req request.CreateUserRequest) (*response.AuthResponse, error) {
 	if req.Username == "" {
 		return nil, errors.New(string(user.ErrInvalidName))
 	}
@@ -72,7 +72,7 @@ func (s *userService) Register(ctx context.Context, req request.CreateUserReques
 	}, nil
 }
 
-func (s *userService) Login(ctx context.Context, req request.LoginUserRequest) (*response.AuthResponse, error) {
+func (s *userUsecase) Login(ctx context.Context, req request.LoginUserRequest) (*response.AuthResponse, error) {
 	if req.Email == "" {
 		return nil, errors.New(string(user.ErrInvalidEmail))
 	}
@@ -105,7 +105,7 @@ func (s *userService) Login(ctx context.Context, req request.LoginUserRequest) (
 	}, nil
 }
 
-func (s *userService) Logout(ctx context.Context, userId string) error {
+func (s *userUsecase) Logout(ctx context.Context, userId string) error {
 	if userId == "" {
 		return errors.New(string(user.ErrUnauthorized))
 	}

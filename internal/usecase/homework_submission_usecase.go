@@ -16,25 +16,25 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type homeworkSubmissionService struct {
+type homeworkSubmissionUsecase struct {
 	homeworkSubmissionRepository homeworksubmission.HomeworkSubmissionRepository
 	homeworkRepository           homework.HomeworkRepository
 	questionRepository           question.QuestionRepository
 }
 
-func NewHomeworkSubmissionService(
+func NewHomeworkSubmissionUsecase(
 	homeworkSubmissionRepository homeworksubmission.HomeworkSubmissionRepository,
 	homeworkRepository homework.HomeworkRepository,
 	questionRepository question.QuestionRepository,
 ) homeworksubmission.HomeworkSubmissionService {
-	return &homeworkSubmissionService{
+	return &homeworkSubmissionUsecase{
 		homeworkSubmissionRepository: homeworkSubmissionRepository,
 		homeworkRepository:           homeworkRepository,
 		questionRepository:           questionRepository,
 	}
 }
 
-func (s *homeworkSubmissionService) CreateHomeworkSubmission(ctx context.Context, req request.CreateHomeworkSubmissionRequest) error {
+func (s *homeworkSubmissionUsecase) CreateHomeworkSubmission(ctx context.Context, req request.CreateHomeworkSubmissionRequest) error {
 	if req.HomeworkID == "" {
 		return errors.New(string(homeworksubmission.ErrInvalidHomeworkSubmission))
 	}
@@ -99,7 +99,7 @@ func (s *homeworkSubmissionService) CreateHomeworkSubmission(ctx context.Context
 	return nil
 }
 
-func (s *homeworkSubmissionService) GetHomeworkSubmissions(ctx context.Context, params pagination.Params, userId string) (*response.HomeworkSubmissionResponseWithMeta, error) {
+func (s *homeworkSubmissionUsecase) GetHomeworkSubmissions(ctx context.Context, params pagination.Params, userId string) (*response.HomeworkSubmissionResponseWithMeta, error) {
 	homeworkSubmissions, total, err := s.homeworkSubmissionRepository.GetHomeworkSubmissionsByUserId(ctx, userId, params)
 	if err != nil {
 		return nil, err
@@ -116,7 +116,7 @@ func (s *homeworkSubmissionService) GetHomeworkSubmissions(ctx context.Context, 
 	}, nil
 }
 
-func (s *homeworkSubmissionService) GetHomeworkSubmissionById(ctx context.Context, id string, userId string) (*response.HomeworkSubmissionResponse, error) {
+func (s *homeworkSubmissionUsecase) GetHomeworkSubmissionById(ctx context.Context, id string, userId string) (*response.HomeworkSubmissionResponse, error) {
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, errors.New(string(homeworksubmission.ErrHomeworkSubmissionNotFound))
@@ -159,7 +159,7 @@ func (s *homeworkSubmissionService) GetHomeworkSubmissionById(ctx context.Contex
 	return response, nil
 }
 
-func (s *homeworkSubmissionService) GetHomeworkSubmissionsByHomeworkId(ctx context.Context, homeworkId string, userId string, params pagination.Params) (*response.HomeworkSubmissionResponseWithMeta, error) {
+func (s *homeworkSubmissionUsecase) GetHomeworkSubmissionsByHomeworkId(ctx context.Context, homeworkId string, userId string, params pagination.Params) (*response.HomeworkSubmissionResponseWithMeta, error) {
 	objectId, err := primitive.ObjectIDFromHex(homeworkId)
 	if err != nil {
 		return nil, errors.New(string(homeworksubmission.ErrHomeworkSubmissionNotFound))
@@ -195,7 +195,7 @@ func (s *homeworkSubmissionService) GetHomeworkSubmissionsByHomeworkId(ctx conte
 
 }
 
-func (s *homeworkSubmissionService) loadSubmissionRelations(
+func (s *homeworkSubmissionUsecase) loadSubmissionRelations(
 	ctx context.Context,
 	submissions []*homeworksubmission.HomeworkSubmission,
 ) (map[string]*homework.Homework, map[string]*question.Question, error) {
@@ -256,7 +256,7 @@ func setKeys(set map[string]struct{}) []string {
 	return keys
 }
 
-func (s *homeworkSubmissionService) loadHomeworkQuestions(ctx context.Context, questionIDs []string) (map[string]*question.Question, error) {
+func (s *homeworkSubmissionUsecase) loadHomeworkQuestions(ctx context.Context, questionIDs []string) (map[string]*question.Question, error) {
 	oids := make([]primitive.ObjectID, 0, len(questionIDs))
 	for _, id := range questionIDs {
 		oid, err := primitive.ObjectIDFromHex(id)

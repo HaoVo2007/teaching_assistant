@@ -50,3 +50,25 @@ func (r *userRepository) FindById(ctx context.Context, id primitive.ObjectID) (*
 	}
 	return &user, nil
 }
+
+func (r *userRepository) FindByIds(ctx context.Context, ids []primitive.ObjectID) ([]*user.User, error) {
+	if len(ids) == 0 {
+		return []*user.User{}, nil
+	}
+
+	cursor, err := r.collection.Find(ctx, bson.M{"_id": bson.M{"$in": ids}})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	users := make([]*user.User, 0)
+	for cursor.Next(ctx) {
+		var item user.User
+		if err := cursor.Decode(&item); err != nil {
+			return nil, err
+		}
+		users = append(users, &item)
+	}
+	return users, nil
+}

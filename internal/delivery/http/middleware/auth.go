@@ -38,3 +38,28 @@ func UserIDFromCtx(c *fiber.Ctx) (string, error) {
 	}
 	return id, nil
 }
+
+func RequireRole(jwtManager *jwt.Manager, role user.Role) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		header := c.Get("Authorization")
+		if !strings.HasPrefix(header, "Bearer ") {
+			return response.Fail(c, fiber.StatusUnauthorized, "missing token", "UNAUTHORIZED")
+		}
+
+		claims, err := jwtManager.ParseToken(strings.TrimPrefix(header, "Bearer "))
+		if err != nil {
+			return response.Fail(c, fiber.StatusUnauthorized, "invalid token", "UNAUTHORIZED")
+		}
+
+		c.Locals("user_id", claims.UserID)
+		c.Locals("username", claims.Username)
+		c.Locals("email", claims.Email)
+		c.Locals("role", claims.Role)
+
+		if string(claims.Role) != string(role) {
+			return response.Fail(c, fiber.StatusForbidden, "forbidden", "FORBIDDEN")
+		}
+
+		return c.Next()
+	}
+}

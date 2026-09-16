@@ -9,6 +9,7 @@ import (
 	homeworksubmission "teaching_assistant/internal/domain/homework_submission"
 	"teaching_assistant/internal/domain/question"
 	questionset "teaching_assistant/internal/domain/question_set"
+	"teaching_assistant/internal/domain/student"
 	"teaching_assistant/internal/domain/user"
 	"teaching_assistant/internal/infrastructure/database"
 	"teaching_assistant/internal/repository/mongodb"
@@ -42,6 +43,7 @@ type Repositories struct {
 	ClassRepository              class.ClassRepository
 	HomeworkRepository           homework.HomeworkRepository
 	HomeworkSubmissionRepository homeworksubmission.HomeworkSubmissionRepository
+	StudentRepository            student.StudentRepository
 }
 
 type Services struct {
@@ -51,6 +53,7 @@ type Services struct {
 	ClassService              class.ClassService
 	HomeworkService           homework.HomeworkService
 	HomeworkSubmissionService homeworksubmission.HomeworkSubmissionService
+	StudentService            student.StudentService
 }
 
 type Handlers struct {
@@ -60,6 +63,7 @@ type Handlers struct {
 	ClassHandler              *httpHandler.ClassHandler
 	HomeworkHandler           *httpHandler.HomeworkHandler
 	HomeworkSubmissionHandler *httpHandler.HomeworkSubmissionHandler
+	StudentHandler            *httpHandler.StudentHandler
 }
 
 func NewApplication(ctx context.Context, cfg *config.Config) (*Application, error) {
@@ -67,10 +71,18 @@ func NewApplication(ctx context.Context, cfg *config.Config) (*Application, erro
 		cfg: cfg,
 	}
 
-	a.initDatabase(ctx)
+	if err := a.initDatabase(ctx); err != nil {
+		return nil, err
+	}
 	a.initJwtManager()
 	a.initCloudinary()
 	a.initRepositories()
+	if err := database.EnsureIndexes(ctx, a.db); err != nil {
+		return nil, err
+	}
+	if err := database.Seed(ctx, a.db); err != nil {
+		return nil, err
+	}
 	a.initServices()
 	a.initHandlers()
 	a.initRouter()
@@ -93,36 +105,40 @@ func (a *Application) initRepositories() {
 	a.repositories.QuestionRepository = mongodb.NewQuestionRepository(a.db)
 	a.repositories.QuestionSetRepository = mongodb.NewQuestionSetRepository(a.db)
 	a.repositories.ClassRepository = mongodb.NewClassRepository(a.db)
+	a.repositories.StudentRepository = mongodb.NewStudentRepository(a.db)
 	a.repositories.HomeworkRepository = mongodb.NewHomeworkRepository(a.db)
 	a.repositories.HomeworkSubmissionRepository = mongodb.NewHomeworkSubmissionRepository(a.db)
 }
 
 func (a *Application) initServices() {
-	a.services.UserService = usecase.NewUserService(a.repositories.UserRepository, a.jwtManager)
-	a.services.QuestionService = usecase.NewQuestionService(
+	a.services.UserService = usecase.NewUserUsecase(a.repositories.UserRepository, a.jwtManager)
+	a.services.QuestionService = usecase.NewQuestionUsecase(
 		a.repositories.QuestionRepository,
 		a.repositories.QuestionSetRepository,
 		a.repositories.HomeworkRepository,
 		a.repositories.HomeworkSubmissionRepository,
 		a.cloudinary,
 	)
-	a.services.QuestionSetService = usecase.NewQuestionSetService(a.repositories.QuestionSetRepository, a.repositories.QuestionRepository)
+	a.services.QuestionSetService = usecase.NewQuestionSetUsecase(a.repositories.QuestionSetRepository, a.repositories.QuestionRepository)
 	a.services.ClassService = usecase.NewClassUsecase(
 		a.repositories.ClassRepository,
+		a.repositories.StudentRepository,
+		a.repositories.UserRepository,
 		a.repositories.HomeworkRepository,
 		a.cloudinary,
 	)
-	a.services.HomeworkService = usecase.NewHomeworkService(
+	a.services.HomeworkService = usecase.NewHomeworkUsecase(
 		a.repositories.HomeworkRepository,
 		a.repositories.QuestionRepository,
 		a.repositories.ClassRepository,
 		a.repositories.HomeworkSubmissionRepository,
 	)
-	a.services.HomeworkSubmissionService = usecase.NewHomeworkSubmissionService(
+	a.services.HomeworkSubmissionService = usecase.NewHomeworkSubmissionUsecase(
 		a.repositories.HomeworkSubmissionRepository,
 		a.repositories.HomeworkRepository,
 		a.repositories.QuestionRepository,
 	)
+	a.services.StudentService = usecase.NewStudentUsecase(a.repositories.StudentRepository)
 }
 
 func (a *Application) initHandlers() {
@@ -158,6 +174,7 @@ func (a *Application) initRouter() {
 		a.handlers.ClassHandler,
 		a.handlers.HomeworkHandler,
 		a.handlers.HomeworkSubmissionHandler,
+		a.handlers.StudentHandler,
 		a.jwtManager,
 	)
 }

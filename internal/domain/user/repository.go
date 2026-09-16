@@ -9,5 +9,6 @@ import (
 type UserRepository interface {
 	Create(ctx context.Context, user *User) error
 	FindById(ctx context.Context, id primitive.ObjectID) (*User, error)
+	FindByIds(ctx context.Context, ids []primitive.ObjectID) ([]*User, error)
 	FindByEmail(ctx context.Context, email string) (*User, error)
 }

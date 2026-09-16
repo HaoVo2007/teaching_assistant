@@ -20,7 +20,7 @@ type questionSetUsecase struct {
 	questionRepo    question.QuestionRepository
 }
 
-func NewQuestionSetService(
+func NewQuestionSetUsecase(
 	questionSetRepo questionset.QuestionSetRepository,
 	questionRepo question.QuestionRepository,
 ) questionset.QuestionSetService {

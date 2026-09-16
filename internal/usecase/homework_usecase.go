@@ -16,20 +16,20 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type homeworkService struct {
+type homeworkUsecase struct {
 	homeworkRepo   homework.HomeworkRepository
 	questionRepo   question.QuestionRepository
 	classRepo      class.ClassRepository
 	submissionRepo homeworksubmission.HomeworkSubmissionRepository
 }
 
-func NewHomeworkService(
+func NewHomeworkUsecase(
 	homeworkRepo homework.HomeworkRepository,
 	questionRepo question.QuestionRepository,
 	classRepo class.ClassRepository,
 	submissionRepo homeworksubmission.HomeworkSubmissionRepository,
 ) homework.HomeworkService {
-	return &homeworkService{
+	return &homeworkUsecase{
 		homeworkRepo:   homeworkRepo,
 		questionRepo:   questionRepo,
 		classRepo:      classRepo,
@@ -37,7 +37,7 @@ func NewHomeworkService(
 	}
 }
 
-func (u *homeworkService) CreateHomework(ctx context.Context, userId string, req request.CreateHomeworkRequest) error {
+func (u *homeworkUsecase) CreateHomework(ctx context.Context, userId string, req request.CreateHomeworkRequest) error {
 	if req.Title == "" {
 		return homework.ErrInvalidTitle
 	}
@@ -88,7 +88,7 @@ func (u *homeworkService) CreateHomework(ctx context.Context, userId string, req
 	return nil
 }
 
-func (u *homeworkService) GetHomeworks(ctx context.Context, userId string, params pagination.Params) (*response.HomeworkResponseWithMeta, error) {
+func (u *homeworkUsecase) GetHomeworks(ctx context.Context, userId string, params pagination.Params) (*response.HomeworkResponseWithMeta, error) {
 	homeworks, total, err := u.homeworkRepo.GetHomeworks(ctx, userId, "", params)
 	if err != nil {
 		return nil, err
@@ -129,7 +129,7 @@ func (u *homeworkService) GetHomeworks(ctx context.Context, userId string, param
 	}, nil
 }
 
-func (u *homeworkService) GetHomeworkById(ctx context.Context, userId string, id string) (*response.HomeworkResponse, error) {
+func (u *homeworkUsecase) GetHomeworkById(ctx context.Context, userId string, id string) (*response.HomeworkResponse, error) {
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
@@ -165,7 +165,7 @@ func (u *homeworkService) GetHomeworkById(ctx context.Context, userId string, id
 	return mapper.MapHomeworkToResponse(homeworkRes, mapper.QuestionResponseMap(questions)), nil
 }
 
-func (u *homeworkService) UpdateHomeworkById(ctx context.Context, userId string, id string, req request.UpdateHomeworkRequest) error {
+func (u *homeworkUsecase) UpdateHomeworkById(ctx context.Context, userId string, id string, req request.UpdateHomeworkRequest) error {
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return err
@@ -227,7 +227,7 @@ func (u *homeworkService) UpdateHomeworkById(ctx context.Context, userId string,
 	return nil
 }
 
-func (u *homeworkService) DeleteHomeworkById(ctx context.Context, userId string, id string) error {
+func (u *homeworkUsecase) DeleteHomeworkById(ctx context.Context, userId string, id string) error {
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return err
@@ -257,7 +257,7 @@ func (u *homeworkService) DeleteHomeworkById(ctx context.Context, userId string,
 	return nil
 }
 
-func (u *homeworkService) GetHomeworksByClassId(ctx context.Context, userId string, classId string, params pagination.Params) (*response.HomeworkResponseWithMeta, error) {
+func (u *homeworkUsecase) GetHomeworksByClassId(ctx context.Context, userId string, classId string, params pagination.Params) (*response.HomeworkResponseWithMeta, error) {
 	homeworks, total, err := u.homeworkRepo.GetHomeworks(ctx, userId, classId, params)
 	if err != nil {
 		return nil, err
@@ -298,7 +298,7 @@ func (u *homeworkService) GetHomeworksByClassId(ctx context.Context, userId stri
 	}, nil
 }
 
-func (u *homeworkService) ensureOwnedClass(ctx context.Context, userId, classID string) error {
+func (u *homeworkUsecase) ensureOwnedClass(ctx context.Context, userId, classID string) error {
 	objectId, err := primitive.ObjectIDFromHex(classID)
 	if err != nil {
 		return homework.ErrInvalidClassID
@@ -314,7 +314,7 @@ func (u *homeworkService) ensureOwnedClass(ctx context.Context, userId, classID 
 	return nil
 }
 
-func (u *homeworkService) ensureQuestionsExist(ctx context.Context, questionIDs []string) error {
+func (u *homeworkUsecase) ensureQuestionsExist(ctx context.Context, questionIDs []string) error {
 	unique := uniqueStrings(questionIDs)
 	objectIDs := make([]primitive.ObjectID, 0, len(unique))
 	for _, id := range unique {
@@ -335,7 +335,7 @@ func (u *homeworkService) ensureQuestionsExist(ctx context.Context, questionIDs 
 	return nil
 }
 
-func (u *homeworkService) homeworkHasSubmissions(ctx context.Context, homeworkID string) (bool, error) {
+func (u *homeworkUsecase) homeworkHasSubmissions(ctx context.Context, homeworkID string) (bool, error) {
 	count, err := u.submissionRepo.CountByHomeworkID(ctx, homeworkID)
 	if err != nil {
 		return false, err
