@@ -10,6 +10,7 @@ import (
 type HomeworkRepository interface {
 	CreateHomework(ctx context.Context, homework *Homework) error
 	GetHomeworks(ctx context.Context, userId string, classId string, params pagination.Params) ([]*Homework, int64, error)
+	GetHomeworksByClassId(ctx context.Context, classId string, params pagination.Params) ([]*Homework, int64, error)
 	GetHomeworkById(ctx context.Context, id primitive.ObjectID) (*Homework, error)
 	GetHomeworkByIds(ctx context.Context, ids []primitive.ObjectID) ([]*Homework, error)
 	UpdateHomeworkById(ctx context.Context, id primitive.ObjectID, homework *Homework) error

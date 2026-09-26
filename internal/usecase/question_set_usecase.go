@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"errors"
 	"slices"
 	"teaching_assistant/internal/delivery/http/mapper"
 	"teaching_assistant/internal/delivery/http/request"
@@ -32,22 +31,22 @@ func NewQuestionSetUsecase(
 
 func (s *questionSetUsecase) CreateQuestionSet(ctx context.Context, userId string, req request.CreateQuestionSetRequest) error {
 	if req.QuestionType == "" {
-		return errors.New(string(questionset.ErrInvalidQuestionType))
+		return questionset.ErrInvalidQuestionType
 	}
 
 	if req.Title == "" {
-		return errors.New(string(questionset.ErrInvalidTitle))
+		return questionset.ErrInvalidTitle
 	}
 
 	if len(req.Questions) == 0 {
-		return errors.New(string(questionset.ErrInvalidQuestions))
+		return questionset.ErrInvalidQuestions
 	}
 
 	var questionIdsPrimitive []primitive.ObjectID
 	for _, questionId := range req.Questions {
 		oid, err := primitive.ObjectIDFromHex(questionId)
 		if err != nil {
-			return errors.New(string(questionset.ErrInvalidQuestions))
+			return questionset.ErrInvalidQuestions
 		}
 		questionIdsPrimitive = append(questionIdsPrimitive, oid)
 	}
@@ -59,7 +58,7 @@ func (s *questionSetUsecase) CreateQuestionSet(ctx context.Context, userId strin
 
 	for _, question := range questions {
 		if questionset.QuestionSetType(question.Type) != questionset.QuestionSetType(req.QuestionType) {
-			return errors.New(string(questionset.ErrInvalidQuestionTypeForQuestion))
+			return questionset.ErrInvalidQuestionTypeForQuestion
 		}
 	}
 
@@ -155,16 +154,16 @@ func (s *questionSetUsecase) GetQuestionSets(ctx context.Context, userId string,
 func (s *questionSetUsecase) GetQuestionSetById(ctx context.Context, userId string, id string) (*response.QuestionSetResponse, error) {
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return nil, err
+		return nil, questionset.ErrQuestionSetNotFound
 	}
 
 	questionSet, err := s.questionSetRepo.GetQuestionSetById(ctx, objectId)
 	if err != nil {
-		return nil, errors.New(string(questionset.ErrQuestionSetNotFound))
+		return nil, questionset.ErrQuestionSetNotFound
 	}
 
 	if questionSet.CreatedBy != userId {
-		return nil, errors.New(string(questionset.ErrUnauthorized))
+		return nil, questionset.ErrUnauthorized
 	}
 
 	var questionIds []string
@@ -214,16 +213,16 @@ func (s *questionSetUsecase) GetQuestionSetById(ctx context.Context, userId stri
 func (s *questionSetUsecase) UpdateQuestionSetById(ctx context.Context, userId string, id string, req request.UpdateQuestionSetRequest) error {
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return err
+		return questionset.ErrQuestionSetNotFound
 	}
 
 	questionSet, err := s.questionSetRepo.GetQuestionSetById(ctx, objectId)
 	if err != nil {
-		return errors.New(string(questionset.ErrQuestionSetNotFound))
+		return questionset.ErrQuestionSetNotFound
 	}
 
 	if questionSet.CreatedBy != userId {
-		return errors.New(string(questionset.ErrUnauthorized))
+		return questionset.ErrUnauthorized
 	}
 
 	if req.Title != nil {
@@ -251,16 +250,16 @@ func (s *questionSetUsecase) UpdateQuestionSetById(ctx context.Context, userId s
 func (s *questionSetUsecase) DeleteQuestionSetById(ctx context.Context, userId string, id string) error {
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return err
+		return questionset.ErrQuestionSetNotFound
 	}
 
 	questionSet, err := s.questionSetRepo.GetQuestionSetById(ctx, objectId)
 	if err != nil {
-		return errors.New(string(questionset.ErrQuestionSetNotFound))
+		return questionset.ErrQuestionSetNotFound
 	}
 
 	if questionSet.CreatedBy != userId {
-		return errors.New(string(questionset.ErrUnauthorized))
+		return questionset.ErrUnauthorized
 	}
 
 	err = s.questionSetRepo.DeleteQuestionSetById(ctx, objectId)

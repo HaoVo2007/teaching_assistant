@@ -98,19 +98,12 @@ func EnsureIndexes(ctx context.Context, db *mongo.Database) error {
 		},
 		"guardians": {
 			{
-				Keys: bson.D{
-					{Key: "parent_id", Value: 1},
-					{Key: "student_id", Value: 1},
-				},
-				Options: options.Index().SetUnique(true).SetName("uniq_guardian_parent_id_student_id"),
-			},
-			{
 				Keys:    bson.D{{Key: "parent_id", Value: 1}},
-				Options: options.Index().SetName("idx_guardian_parent_id"),
+				Options: options.Index().SetUnique(true).SetName("uniq_guardian_parent_id"),
 			},
 			{
 				Keys:    bson.D{{Key: "student_id", Value: 1}},
-				Options: options.Index().SetName("idx_guardian_student_id"),
+				Options: options.Index().SetUnique(true).SetName("uniq_guardian_student_id"),
 			},
 		},
 		"homeworks": {
@@ -161,6 +154,15 @@ func EnsureIndexes(ctx context.Context, db *mongo.Database) error {
 			{
 				Keys:    bson.D{{Key: "student_answers.question_id", Value: 1}},
 				Options: options.Index().SetName("idx_submission_answer_question_id"),
+			},
+			{
+				Keys: bson.D{
+					{Key: "homework_id", Value: 1},
+					{Key: "student_id", Value: 1},
+				},
+				Options: options.Index().
+					SetUnique(true).
+					SetName("uniq_submission_homework_student"),
 			},
 		},
 	}

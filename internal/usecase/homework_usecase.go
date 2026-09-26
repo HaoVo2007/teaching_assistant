@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"errors"
 	"teaching_assistant/internal/delivery/http/mapper"
 	"teaching_assistant/internal/delivery/http/request"
 	"teaching_assistant/internal/delivery/http/response"
@@ -10,6 +9,7 @@ import (
 	"teaching_assistant/internal/domain/homework"
 	homeworksubmission "teaching_assistant/internal/domain/homework_submission"
 	"teaching_assistant/internal/domain/question"
+	"teaching_assistant/internal/domain/student"
 	"teaching_assistant/pkg/pagination"
 	"time"
 
@@ -21,6 +21,7 @@ type homeworkUsecase struct {
 	questionRepo   question.QuestionRepository
 	classRepo      class.ClassRepository
 	submissionRepo homeworksubmission.HomeworkSubmissionRepository
+	studentRepo    student.StudentRepository
 }
 
 func NewHomeworkUsecase(
@@ -28,12 +29,14 @@ func NewHomeworkUsecase(
 	questionRepo question.QuestionRepository,
 	classRepo class.ClassRepository,
 	submissionRepo homeworksubmission.HomeworkSubmissionRepository,
+	studentRepo student.StudentRepository,
 ) homework.HomeworkService {
 	return &homeworkUsecase{
 		homeworkRepo:   homeworkRepo,
 		questionRepo:   questionRepo,
 		classRepo:      classRepo,
 		submissionRepo: submissionRepo,
+		studentRepo:    studentRepo,
 	}
 }
 
@@ -132,16 +135,19 @@ func (u *homeworkUsecase) GetHomeworks(ctx context.Context, userId string, param
 func (u *homeworkUsecase) GetHomeworkById(ctx context.Context, userId string, id string) (*response.HomeworkResponse, error) {
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return nil, err
+		return nil, homework.ErrHomeworkNotFound
 	}
 
 	homeworkRes, err := u.homeworkRepo.GetHomeworkById(ctx, objectId)
 	if err != nil {
 		return nil, err
 	}
+	if homeworkRes == nil {
+		return nil, homework.ErrHomeworkNotFound
+	}
 
 	if homeworkRes.CreatedBy != userId {
-		return nil, errors.New(string(homework.ErrHomeworkNotAuthorized))
+		return nil, homework.ErrHomeworkNotAuthorized
 	}
 
 	questionIds := homeworkRes.Questions
@@ -168,12 +174,15 @@ func (u *homeworkUsecase) GetHomeworkById(ctx context.Context, userId string, id
 func (u *homeworkUsecase) UpdateHomeworkById(ctx context.Context, userId string, id string, req request.UpdateHomeworkRequest) error {
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return err
+		return homework.ErrHomeworkNotFound
 	}
 
 	homeworkRes, err := u.homeworkRepo.GetHomeworkById(ctx, objectId)
 	if err != nil {
 		return err
+	}
+	if homeworkRes == nil {
+		return homework.ErrHomeworkNotFound
 	}
 
 	if homeworkRes.CreatedBy != userId {
@@ -230,12 +239,15 @@ func (u *homeworkUsecase) UpdateHomeworkById(ctx context.Context, userId string,
 func (u *homeworkUsecase) DeleteHomeworkById(ctx context.Context, userId string, id string) error {
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return err
+		return homework.ErrHomeworkNotFound
 	}
 
 	homeworkRes, err := u.homeworkRepo.GetHomeworkById(ctx, objectId)
 	if err != nil {
 		return err
+	}
+	if homeworkRes == nil {
+		return homework.ErrHomeworkNotFound
 	}
 
 	if homeworkRes.CreatedBy != userId {
@@ -275,6 +287,70 @@ func (u *homeworkUsecase) GetHomeworksByClassId(ctx context.Context, userId stri
 		questionIds = append(questionIds, questionId)
 	}
 
+	questionIdsObjectIDs := make([]primitive.ObjectID, 0, len(questionIds))
+	for _, questionId := range questionIds {
+		questionIdObjectID, err := primitive.ObjectIDFromHex(questionId)
+		if err != nil {
+			return nil, err
+		}
+		questionIdsObjectIDs = append(questionIdsObjectIDs, questionIdObjectID)
+	}
+
+	var questions []*question.Question
+	if len(questionIdsObjectIDs) > 0 {
+		questions, err = u.questionRepo.GetQuestionByIds(ctx, questionIdsObjectIDs)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &response.HomeworkResponseWithMeta{
+		Homeworks: mapper.MapHomeworksToResponses(homeworks, mapper.QuestionResponseMap(questions)),
+		Meta:      pagination.NewMeta(params, total),
+	}, nil
+}
+
+func (u *homeworkUsecase) GetHomeworksByStudentId(ctx context.Context, userId string, params pagination.Params) (*response.HomeworkResponseWithMeta, error) {
+	guardian, err := u.studentRepo.GetGuardianByParentId(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	if guardian == nil {
+		return nil, student.ErrGuardianNotFound
+	}
+
+	studentId, err := primitive.ObjectIDFromHex(guardian.StudentID)
+	if err != nil {
+		return nil, err
+	}
+
+	studentRes, err := u.studentRepo.GetStudentById(ctx, studentId)
+	if err != nil {
+		return nil, err
+	}
+
+	if studentRes == nil {
+		return nil, student.ErrStudentNotFound
+	}
+
+	homeworks, total, err := u.homeworkRepo.GetHomeworksByClassId(ctx, studentRes.ClassID, params)
+	if err != nil {
+		return nil, err
+	}
+	
+	var questionIdsSet = map[string]bool{}
+	for _, homework := range homeworks {
+		for _, questionId := range homework.Questions {
+			questionIdsSet[questionId] = true
+		}
+	}
+	
+	questionIds := make([]string, 0, len(questionIdsSet))
+	for questionId := range questionIdsSet {
+		questionIds = append(questionIds, questionId)
+	}
+	
 	questionIdsObjectIDs := make([]primitive.ObjectID, 0, len(questionIds))
 	for _, questionId := range questionIds {
 		questionIdObjectID, err := primitive.ObjectIDFromHex(questionId)

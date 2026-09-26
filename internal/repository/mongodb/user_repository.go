@@ -2,7 +2,6 @@ package mongodb
 
 import (
 	"context"
-	"errors"
 
 	"teaching_assistant/internal/domain/user"
 
@@ -21,34 +20,37 @@ func NewUserRepository(db *mongo.Database) user.UserRepository {
 	}
 }
 
-func (r *userRepository) Create(ctx context.Context, user *user.User) error {
-	_, err := r.collection.InsertOne(ctx, user)
+func (r *userRepository) Create(ctx context.Context, item *user.User) error {
+	_, err := r.collection.InsertOne(ctx, item)
+	if mongo.IsDuplicateKeyError(err) {
+		return user.ErrEmailAlreadyExists
+	}
 	return err
 }
 
 func (r *userRepository) FindByEmail(ctx context.Context, email string) (*user.User, error) {
-	var user user.User
-	err := r.collection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
+	var item user.User
+	err := r.collection.FindOne(ctx, bson.M{"email": email}).Decode(&item)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return nil, errors.New("user not found")
+			return nil, user.ErrUserNotFound
 		}
 		return nil, err
 	}
-	return &user, err
+	return &item, err
 }
 
 func (r *userRepository) FindById(ctx context.Context, id primitive.ObjectID) (*user.User, error) {
 	filter := bson.M{"_id": id}
-	var user user.User
-	err := r.collection.FindOne(ctx, filter).Decode(&user)
+	var item user.User
+	err := r.collection.FindOne(ctx, filter).Decode(&item)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return nil, errors.New("user not found")
+			return nil, user.ErrUserNotFound
 		}
 		return nil, err
 	}
-	return &user, nil
+	return &item, nil
 }
 
 func (r *userRepository) FindByIds(ctx context.Context, ids []primitive.ObjectID) ([]*user.User, error) {

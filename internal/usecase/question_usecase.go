@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"errors"
 	"mime/multipart"
 	"time"
 
@@ -46,15 +45,15 @@ func NewQuestionUsecase(
 
 func (s *questionUsecase) CreateQuestion(ctx context.Context, req request.CreateQuestionRequest, userId string) (*question.Question, error) {
 	if req.Type == "" {
-		return nil, errors.New(string(question.ErrInvalidType))
+		return nil, question.ErrInvalidType
 	}
 
 	if req.Subject == "" {
-		return nil, errors.New(string(question.ErrInvalidSubject))
+		return nil, question.ErrInvalidSubject
 	}
 
 	if req.Grade == "" {
-		return nil, errors.New(string(question.ErrInvalidGrade))
+		return nil, question.ErrInvalidGrade
 	}
 
 	pairs := make([]question.Pair, 0, len(req.Pairs))
@@ -106,21 +105,24 @@ func (s *questionUsecase) GetQuestions(ctx context.Context, userId string, param
 func (s *questionUsecase) GetQuestionById(ctx context.Context, id string) (*response.QuestionResponse, error) {
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return nil, err
+		return nil, question.ErrQuestionNotFound
 	}
 
-	question, err := s.questionRepo.GetQuestionById(ctx, objectId)
+	item, err := s.questionRepo.GetQuestionById(ctx, objectId)
 	if err != nil {
 		return nil, err
 	}
+	if item == nil {
+		return nil, question.ErrQuestionNotFound
+	}
 
-	return mapper.MapQuestionToResponse(question), nil
+	return mapper.MapQuestionToResponse(item), nil
 }
 
 func (s *questionUsecase) UpdateQuestionById(ctx context.Context, id string, req request.UpdateQuestionRequest, userId string) (*question.Question, error) {
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return nil, err
+		return nil, question.ErrQuestionNotFound
 	}
 
 	questionRes, err := s.questionRepo.GetQuestionById(ctx, objectId)
@@ -129,7 +131,7 @@ func (s *questionUsecase) UpdateQuestionById(ctx context.Context, id string, req
 	}
 
 	if questionRes == nil {
-		return nil, errors.New(string(question.ErrQuestionNotFound))
+		return nil, question.ErrQuestionNotFound
 	}
 
 	if questionRes.CreatedBy != userId {
@@ -220,7 +222,7 @@ func (s *questionUsecase) UpdateQuestionById(ctx context.Context, id string, req
 func (s *questionUsecase) DeleteQuestionById(ctx context.Context, id string, userId string) error {
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return err
+		return question.ErrQuestionNotFound
 	}
 
 	questionRes, err := s.questionRepo.GetQuestionById(ctx, objectId)
@@ -314,7 +316,7 @@ func (s *questionUsecase) resolveSide(
 		if oldKind == string(question.Image) && oldValue != "" {
 			return pairSide{value: oldValue, publicID: oldPublicID, kind: string(question.Image)}, nil, nil
 		}
-		return pairSide{}, nil, errors.New(string(question.ErrInvalidPairs))
+		return pairSide{}, nil, question.ErrInvalidPairs
 	}
 
 	var stale []string

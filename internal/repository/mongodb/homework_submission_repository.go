@@ -23,6 +23,9 @@ func NewHomeworkSubmissionRepository(db *mongo.Database) homeworksubmission.Home
 
 func (r *homeworkSubmissionRepository) CreateHomeworkSubmission(ctx context.Context, submission *homeworksubmission.HomeworkSubmission) error {
 	_, err := r.collection.InsertOne(ctx, submission)
+	if mongo.IsDuplicateKeyError(err) {
+		return homeworksubmission.ErrHomeworkSubmissionAlreadyExists
+	}
 	if err != nil {
 		return err
 	}
@@ -108,6 +111,23 @@ func (r *homeworkSubmissionRepository) GetHomeworkSubmissionsByHomeworkId(ctx co
 	}
 
 	return submissions, total, nil
+}
+
+func (r *homeworkSubmissionRepository) GetHomeworkSubmissionsOfStudentByHomeworkId(ctx context.Context, homeworkID string, studentID string) (*homeworksubmission.HomeworkSubmission, error) {
+	filter := bson.M{
+		"homework_id": homeworkID,
+		"student_id":  studentID,
+	}
+
+	var submission homeworksubmission.HomeworkSubmission
+	if err := r.collection.FindOne(ctx, filter).Decode(&submission); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, homeworksubmission.ErrHomeworkSubmissionNotFound
+		}
+		return nil, err
+	}
+
+	return &submission, nil
 }
 
 func (r *homeworkSubmissionRepository) CountByHomeworkID(ctx context.Context, homeworkID string) (int64, error) {

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"teaching_assistant/internal/delivery/http/httperr"
 	"teaching_assistant/internal/delivery/http/middleware"
 	"teaching_assistant/internal/delivery/http/request"
 	"teaching_assistant/internal/domain/homework"
@@ -34,7 +35,7 @@ func (h *HomeworkHandler) CreateHomework(c *fiber.Ctx) error {
 
 	err = h.homeworkService.CreateHomework(c.UserContext(), userId, req)
 	if err != nil {
-		return response.Fail(c, fiber.StatusInternalServerError, err.Error(), "INTERNAL_SERVER_ERROR")
+		return httperr.Fail(c, err)
 	}
 
 	return response.OK(c, "Homework created successfully", nil)
@@ -53,7 +54,7 @@ func (h *HomeworkHandler) GetHomeworks(c *fiber.Ctx) error {
 
 	homeworks, err := h.homeworkService.GetHomeworks(c.UserContext(), userId, params)
 	if err != nil {
-		return response.Fail(c, fiber.StatusInternalServerError, err.Error(), "INTERNAL_SERVER_ERROR")
+		return httperr.Fail(c, err)
 	}
 
 	return response.OK(c, "Homeworks fetched successfully", homeworks)
@@ -69,7 +70,7 @@ func (h *HomeworkHandler) GetHomeworkById(c *fiber.Ctx) error {
 
 	homework, err := h.homeworkService.GetHomeworkById(c.UserContext(), userId, id)
 	if err != nil {
-		return response.Fail(c, fiber.StatusInternalServerError, err.Error(), "INTERNAL_SERVER_ERROR")
+		return httperr.Fail(c, err)
 	}
 
 	return response.OK(c, "Homework fetched successfully", homework)
@@ -90,7 +91,7 @@ func (h *HomeworkHandler) UpdateHomeworkById(c *fiber.Ctx) error {
 
 	err = h.homeworkService.UpdateHomeworkById(c.UserContext(), userId, id, req)
 	if err != nil {
-		return response.Fail(c, fiber.StatusInternalServerError, err.Error(), "INTERNAL_SERVER_ERROR")
+		return httperr.Fail(c, err)
 	}
 
 	return response.OK(c, "Homework updated successfully", nil)
@@ -106,7 +107,7 @@ func (h *HomeworkHandler) DeleteHomeworkById(c *fiber.Ctx) error {
 
 	err = h.homeworkService.DeleteHomeworkById(c.UserContext(), userId, id)
 	if err != nil {
-		return response.Fail(c, fiber.StatusInternalServerError, err.Error(), "INTERNAL_SERVER_ERROR")
+		return httperr.Fail(c, err)
 	}
 
 	return response.OK(c, "Homework deleted successfully", nil)
@@ -126,7 +127,26 @@ func (h *HomeworkHandler) GetHomeworksByClassId(c *fiber.Ctx) error {
 
 	homeworks, err := h.homeworkService.GetHomeworksByClassId(c.UserContext(), userId, classId, params)
 	if err != nil {
-		return response.Fail(c, fiber.StatusInternalServerError, err.Error(), "INTERNAL_SERVER_ERROR")
+		return httperr.Fail(c, err)
+	}
+
+	return response.OK(c, "Homeworks fetched successfully", homeworks)
+}
+
+func (h *HomeworkHandler) GetHomeworksByStudentId(c *fiber.Ctx) error {
+	userId, err := middleware.UserIDFromCtx(c)
+	if err != nil {
+		return response.Fail(c, fiber.StatusUnauthorized, string(common.ErrUnauthorized), "UNAUTHORIZED")
+	}
+
+	pageSize := c.QueryInt("page_size", 10)
+	pageIndex := c.QueryInt("page_index", 1)
+
+	params := pagination.New(pageIndex, pageSize)
+
+	homeworks, err := h.homeworkService.GetHomeworksByStudentId(c.UserContext(), userId, params)
+	if err != nil {
+		return httperr.Fail(c, err)
 	}
 
 	return response.OK(c, "Homeworks fetched successfully", homeworks)

@@ -20,7 +20,7 @@ func MapStudentToResponse(item *student.Student, parent *user.User) *response.St
 	}
 	if parent != nil {
 		mapped := MapUserToUserResponse(parent)
-		res.Guardian = &mapped
+		res.Guardian = mapped
 	}
 	return res
 }

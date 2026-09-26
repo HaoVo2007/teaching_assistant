@@ -1,10 +1,10 @@
 package handler
 
 import (
-	"errors"
 	"fmt"
 	"mime/multipart"
 
+	"teaching_assistant/internal/delivery/http/httperr"
 	"teaching_assistant/internal/delivery/http/middleware"
 	"teaching_assistant/internal/delivery/http/request"
 	"teaching_assistant/internal/domain/question"
@@ -42,7 +42,7 @@ func (h *QuestionHandler) CreateQuestion(c *fiber.Ctx) error {
 			if req.Pairs[i].LeftKind == string(question.Image) {
 				header, err := pairImage(c, i, "left")
 				if err != nil {
-					return response.Fail(c, fiber.StatusBadRequest, err.Error(), "INVALID_PAIRS")
+					return httperr.Fail(c, err)
 				}
 				req.Pairs[i].LeftFile = header
 				req.Pairs[i].Left = ""
@@ -50,7 +50,7 @@ func (h *QuestionHandler) CreateQuestion(c *fiber.Ctx) error {
 			if req.Pairs[i].RightKind == string(question.Image) {
 				header, err := pairImage(c, i, "right")
 				if err != nil {
-					return response.Fail(c, fiber.StatusBadRequest, err.Error(), "INVALID_PAIRS")
+					return httperr.Fail(c, err)
 				}
 				req.Pairs[i].RightFile = header
 				req.Pairs[i].Right = ""
@@ -60,7 +60,7 @@ func (h *QuestionHandler) CreateQuestion(c *fiber.Ctx) error {
 
 	_, err = h.questionService.CreateQuestion(c.UserContext(), req, userId)
 	if err != nil {
-		return response.Fail(c, fiber.StatusInternalServerError, err.Error(), "INTERNAL_SERVER_ERROR")
+		return httperr.Fail(c, err)
 	}
 
 	return response.Created(c, "Question created successfully", nil)
@@ -81,7 +81,7 @@ func (h *QuestionHandler) GetQuestions(c *fiber.Ctx) error {
 	params := pagination.New(pageIndex, pageSize)
 	questions, err := h.questionService.GetQuestions(c.UserContext(), userId, params, questionType, questionName, subject, grade, difficulty)
 	if err != nil {
-		return response.Fail(c, fiber.StatusInternalServerError, err.Error(), "INTERNAL_SERVER_ERROR")
+		return httperr.Fail(c, err)
 	}
 
 	return response.OK(c, "Questions fetched successfully", questions)
@@ -95,7 +95,7 @@ func (h *QuestionHandler) GetQuestionById(c *fiber.Ctx) error {
 
 	question, err := h.questionService.GetQuestionById(c.UserContext(), id)
 	if err != nil {
-		return response.Fail(c, fiber.StatusInternalServerError, err.Error(), "INTERNAL_SERVER_ERROR")
+		return httperr.Fail(c, err)
 	}
 
 	return response.OK(c, "Question fetched successfully", question)
@@ -122,7 +122,7 @@ func (h *QuestionHandler) UpdateQuestionById(c *fiber.Ctx) error {
 			if req.Pairs[i].LeftKind == string(question.Image) {
 				header, err := pairImage(c, i, "left")
 				if err != nil {
-					return response.Fail(c, fiber.StatusBadRequest, err.Error(), "INVALID_PAIRS")
+					return httperr.Fail(c, err)
 				}
 				req.Pairs[i].LeftFile = header
 				req.Pairs[i].Left = ""
@@ -130,7 +130,7 @@ func (h *QuestionHandler) UpdateQuestionById(c *fiber.Ctx) error {
 			if req.Pairs[i].RightKind == string(question.Image) {
 				header, err := pairImage(c, i, "right")
 				if err != nil {
-					return response.Fail(c, fiber.StatusBadRequest, err.Error(), "INVALID_PAIRS")
+					return httperr.Fail(c, err)
 				}
 				req.Pairs[i].RightFile = header
 				req.Pairs[i].Right = ""
@@ -140,7 +140,7 @@ func (h *QuestionHandler) UpdateQuestionById(c *fiber.Ctx) error {
 
 	_, err = h.questionService.UpdateQuestionById(c.UserContext(), id, req, userId)
 	if err != nil {
-		return response.Fail(c, fiber.StatusInternalServerError, err.Error(), "INTERNAL_SERVER_ERROR")
+		return httperr.Fail(c, err)
 	}
 
 	return response.OK(c, "Question updated successfully", nil)
@@ -159,7 +159,7 @@ func (h *QuestionHandler) DeleteQuestionById(c *fiber.Ctx) error {
 
 	err = h.questionService.DeleteQuestionById(c.UserContext(), id, userId)
 	if err != nil {
-		return response.Fail(c, fiber.StatusInternalServerError, err.Error(), "INTERNAL_SERVER_ERROR")
+		return httperr.Fail(c, err)
 	}
 
 	return response.OK(c, "Question deleted successfully", nil)
@@ -171,7 +171,7 @@ func pairImage(c *fiber.Ctx, index int, side string) (*multipart.FileHeader, err
 		return nil, nil
 	}
 	if header.Size > maxPairImageSize {
-		return nil, errors.New(string(question.ErrImageTooLarge))
+		return nil, question.ErrImageTooLarge
 	}
 	return header, nil
 }

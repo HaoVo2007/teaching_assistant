@@ -64,6 +64,39 @@ func (r *homeworkRepository) GetHomeworks(ctx context.Context, userId string, cl
 	return homeworks, total, nil
 }
 
+func (r *homeworkRepository) GetHomeworksByClassId(ctx context.Context, classId string, params pagination.Params) ([]*homework.Homework, int64, error) {
+	filter := bson.M{}
+
+	if classId != "" {
+		filter["class_id"] = classId
+	}
+
+	opts := options.Find().SetSkip(params.Skip()).SetLimit(params.Limit64())
+	opts.SetSort(bson.D{{Key: "created_at", Value: -1}})
+
+	total, err := r.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	cursor, err := r.collection.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer cursor.Close(ctx)
+
+	homeworks := make([]*homework.Homework, 0)
+	for cursor.Next(ctx) {
+		var homework homework.Homework
+		if err := cursor.Decode(&homework); err != nil {
+			return nil, 0, err
+		}
+		homeworks = append(homeworks, &homework)
+	}
+
+	return homeworks, total, nil
+}
+
 func (r *homeworkRepository) GetHomeworkById(ctx context.Context, id primitive.ObjectID) (*homework.Homework, error) {
 	filter := bson.M{
 		"_id": id,

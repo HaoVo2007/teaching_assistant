@@ -12,6 +12,7 @@ type HomeworkSubmissionRepository interface {
 	GetHomeworkSubmissionsByUserId(ctx context.Context, userId string, params pagination.Params) ([]*HomeworkSubmission, int64, error)
 	GetHomeworkSubmissionById(ctx context.Context, id primitive.ObjectID) (*HomeworkSubmission, error)
 	GetHomeworkSubmissionsByHomeworkId(ctx context.Context, homeworkID string, userId string, params pagination.Params) ([]*HomeworkSubmission, int64, error)
+	GetHomeworkSubmissionsOfStudentByHomeworkId(ctx context.Context, homeworkID string, studentID string) (*HomeworkSubmission, error)
 	CountByHomeworkID(ctx context.Context, homeworkID string) (int64, error)
 	CountByQuestionID(ctx context.Context, questionID string) (int64, error)
 }

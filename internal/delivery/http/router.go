@@ -3,7 +3,7 @@ package http
 import (
 	"teaching_assistant/internal/delivery/http/handler"
 	"teaching_assistant/internal/delivery/http/middleware"
-	"teaching_assistant/internal/domain/user"
+	userImport "teaching_assistant/internal/domain/user"
 	"teaching_assistant/pkg/jwt"
 
 	"github.com/gofiber/fiber/v2"
@@ -29,7 +29,8 @@ func NewRouter(
 	}))
 
 	api := app.Group("/api/v1")
-
+	admin := api.Group("/admin")
+	admin.Use(middleware.RequireRole(jwtManager, userImport.RoleAdmin))
 	// =========================auth routes=========================
 	auth := api.Group("/auth")
 	{
@@ -37,71 +38,80 @@ func NewRouter(
 		auth.Post("/login", userH.Login)
 		auth.Post("/logout", middleware.AuthMiddleware(jwtManager), userH.Logout)
 	}
+
+	user := admin.Group("/users")
+	{
+		user.Post("/create", userH.CreateUser)
+	}
 	// =========================auth routes=========================
 
-	// =========================user routes=========================
+	// =========================student routes=========================
 	student := api.Group("/students")
 	{
-		student.Post("/claim", middleware.RequireRole(jwtManager, user.RoleUser), studentH.ClaimStudent)
-		student.Get("/by-guardian", middleware.RequireRole(jwtManager, user.RoleParent), studentH.GetStudentByGuardian)
+		student.Post("/claim", middleware.RequireRole(jwtManager, userImport.RoleTeacher), studentH.ClaimStudent)
+		student.Get("/by-guardian", middleware.RequireRole(jwtManager, userImport.RoleParent), studentH.GetStudentByGuardian)
 	}
-	// =========================user routes=========================
+	// =========================student routes=========================
 
 	// =========================question routes=========================
 	question := api.Group("/questions")
+	question.Use(middleware.RequireRole(jwtManager, userImport.RoleTeacher))
 	{
-		question.Post("", middleware.AuthMiddleware(jwtManager), questionH.CreateQuestion)
-		question.Get("", middleware.AuthMiddleware(jwtManager), questionH.GetQuestions)
-		question.Get("/:id", middleware.AuthMiddleware(jwtManager), questionH.GetQuestionById)
-		question.Put("/:id", middleware.AuthMiddleware(jwtManager), questionH.UpdateQuestionById)
-		question.Delete("/:id", middleware.AuthMiddleware(jwtManager), questionH.DeleteQuestionById)
+		question.Post("", questionH.CreateQuestion)
+		question.Get("", questionH.GetQuestions)
+		question.Get("/:id", questionH.GetQuestionById)
+		question.Put("/:id", questionH.UpdateQuestionById)
+		question.Delete("/:id", questionH.DeleteQuestionById)
 	}
 	// =========================question routes=========================
 
 	// =========================question set routes=========================
 	questionSet := api.Group("/question-sets")
+	questionSet.Use(middleware.RequireRole(jwtManager, userImport.RoleTeacher))
 	{
-		questionSet.Post("", middleware.AuthMiddleware(jwtManager), questionSetH.CreateQuestionSet)
-		questionSet.Get("", middleware.AuthMiddleware(jwtManager), questionSetH.GetQuestionSets)
-		questionSet.Get("/:id", middleware.AuthMiddleware(jwtManager), questionSetH.GetQuestionSetById)
-		questionSet.Put("/:id", middleware.AuthMiddleware(jwtManager), questionSetH.UpdateQuestionSetById)
-		questionSet.Delete("/:id", middleware.AuthMiddleware(jwtManager), questionSetH.DeleteQuestionSetById)
+		questionSet.Post("", questionSetH.CreateQuestionSet)
+		questionSet.Get("", questionSetH.GetQuestionSets)
+		questionSet.Get("/:id", questionSetH.GetQuestionSetById)
+		questionSet.Put("/:id", questionSetH.UpdateQuestionSetById)
+		questionSet.Delete("/:id", questionSetH.DeleteQuestionSetById)
 	}
 	// =========================question set routes=========================
 
 	// =========================class routes=========================
 	class := api.Group("/classes")
+	class.Use(middleware.RequireRole(jwtManager, userImport.RoleTeacher))
 	{
-		class.Post("", middleware.AuthMiddleware(jwtManager), classH.CreateClass)
-		class.Get("", middleware.AuthMiddleware(jwtManager), classH.GetClasses)
-		class.Get("/:id", middleware.AuthMiddleware(jwtManager), classH.GetClassById)
-		class.Put("/:id", middleware.AuthMiddleware(jwtManager), classH.UpdateClassById)
-		class.Delete("/:id", middleware.AuthMiddleware(jwtManager), classH.DeleteClassById)
+		class.Post("", classH.CreateClass)
+		class.Get("", classH.GetClasses)
+		class.Get("/:id", classH.GetClassById)
+		class.Put("/:id", classH.UpdateClassById)
+		class.Delete("/:id", classH.DeleteClassById)
 	}
 	// =========================class routes=========================
 
 	// =========================homework routes=========================
 	homework := api.Group("/homeworks")
 	{
-		homework.Post("", middleware.AuthMiddleware(jwtManager), homeworkH.CreateHomework)
-		homework.Get("", middleware.AuthMiddleware(jwtManager), homeworkH.GetHomeworks)
-		homework.Get("/:id", middleware.AuthMiddleware(jwtManager), homeworkH.GetHomeworkById)
-		homework.Put("/:id", middleware.AuthMiddleware(jwtManager), homeworkH.UpdateHomeworkById)
-		homework.Delete("/:id", middleware.AuthMiddleware(jwtManager), homeworkH.DeleteHomeworkById)
-		homework.Get("/class/:class_id", middleware.AuthMiddleware(jwtManager), homeworkH.GetHomeworksByClassId)
-		// homework.Get("/student/:student_id", middleware.RequireRole(jwtManager, user.RoleParent), homeworkH.GetHomeworksByStudentId)
+		homework.Post("", middleware.RequireRole(jwtManager, userImport.RoleTeacher), homeworkH.CreateHomework)
+		homework.Get("", middleware.RequireRole(jwtManager, userImport.RoleTeacher), homeworkH.GetHomeworks)
+		homework.Get("/class/:class_id", middleware.RequireRole(jwtManager, userImport.RoleTeacher), homeworkH.GetHomeworksByClassId)
+		homework.Get("/student/by-guardian", middleware.RequireRole(jwtManager, userImport.RoleParent), homeworkH.GetHomeworksByStudentId)
+		homework.Get("/:id", middleware.RequireRole(jwtManager, userImport.RoleTeacher), homeworkH.GetHomeworkById)
+		homework.Put("/:id", middleware.RequireRole(jwtManager, userImport.RoleTeacher), homeworkH.UpdateHomeworkById)
+		homework.Delete("/:id", middleware.RequireRole(jwtManager, userImport.RoleTeacher), homeworkH.DeleteHomeworkById)
 	}
 	// =========================homework routes=========================
 
 	// =========================homework submission routes=========================
 	homeworkSubmission := api.Group("/homework-submissions")
 	{
-		homeworkSubmission.Post("", homeworkSubmissionH.CreateHomeworkSubmission)
-		homeworkSubmission.Get("", middleware.AuthMiddleware(jwtManager), homeworkSubmissionH.GetHomeworkSubmissions)
-		homeworkSubmission.Get("/:id", middleware.AuthMiddleware(jwtManager), homeworkSubmissionH.GetHomeworkSubmissionById)
+		homeworkSubmission.Post("", middleware.RequireRole(jwtManager, userImport.RoleParent), homeworkSubmissionH.CreateHomeworkSubmission)
+		homeworkSubmission.Get("", middleware.RequireRole(jwtManager, userImport.RoleTeacher), homeworkSubmissionH.GetHomeworkSubmissions)
+		homeworkSubmission.Get("/homework/:homework_id", middleware.RequireRole(jwtManager, userImport.RoleTeacher), homeworkSubmissionH.GetHomeworkSubmissionsByHomeworkId)
+		homeworkSubmission.Get("/:id", middleware.RequireRole(jwtManager, userImport.RoleTeacher), homeworkSubmissionH.GetHomeworkSubmissionById)
+		homeworkSubmission.Get("/student/by-guardian/:homework_id", middleware.RequireRole(jwtManager, userImport.RoleParent), homeworkSubmissionH.GetHomeworkSubmissionsByHomeworkIdByGuardian)
 		// homeworkSubmission.Put("/:id", middleware.AuthMiddleware(jwtManager), homeworkSubmissionH.UpdateHomeworkSubmissionById)
 		// homeworkSubmission.Delete("/:id", middleware.AuthMiddleware(jwtManager), homeworkSubmissionH.DeleteHomeworkSubmissionById)
-		homeworkSubmission.Get("/homework/:homework_id", middleware.AuthMiddleware(jwtManager), homeworkSubmissionH.GetHomeworkSubmissionsByHomeworkId)
 	}
 	// =========================homework submission routes=========================
 }

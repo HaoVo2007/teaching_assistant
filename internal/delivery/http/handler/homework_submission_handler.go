@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"teaching_assistant/internal/delivery/http/httperr"
 	"teaching_assistant/internal/delivery/http/middleware"
 	"teaching_assistant/internal/delivery/http/request"
 	homeworksubmission "teaching_assistant/internal/domain/homework_submission"
@@ -22,14 +23,19 @@ func NewHomeworkSubmissionHandler(homeworkSubmissionService homeworksubmission.H
 }
 
 func (h *HomeworkSubmissionHandler) CreateHomeworkSubmission(c *fiber.Ctx) error {
+	userId, err := middleware.UserIDFromCtx(c)
+	if err != nil {
+		return response.Fail(c, fiber.StatusUnauthorized, string(common.ErrUnauthorized), "UNAUTHORIZED")
+	}
+
 	var req request.CreateHomeworkSubmissionRequest
 	if err := c.BodyParser(&req); err != nil {
 		return response.Fail(c, fiber.StatusBadRequest, err.Error(), "BAD_REQUEST")
 	}
 
-	err := h.homeworkSubmissionService.CreateHomeworkSubmission(c.UserContext(), req)
+	err = h.homeworkSubmissionService.CreateHomeworkSubmission(c.UserContext(), req, userId)
 	if err != nil {
-		return response.Fail(c, fiber.StatusInternalServerError, err.Error(), "INTERNAL_SERVER_ERROR")
+		return httperr.Fail(c, err)
 	}
 
 	return response.OK(c, "Homework submission created successfully", nil)
@@ -48,7 +54,7 @@ func (h *HomeworkSubmissionHandler) GetHomeworkSubmissions(c *fiber.Ctx) error {
 
 	homeworkSubmissions, err := h.homeworkSubmissionService.GetHomeworkSubmissions(c.UserContext(), params, userId)
 	if err != nil {
-		return response.Fail(c, fiber.StatusInternalServerError, err.Error(), "INTERNAL_SERVER_ERROR")
+		return httperr.Fail(c, err)
 	}
 
 	return response.OK(c, "Homework submissions fetched successfully", homeworkSubmissions)
@@ -67,7 +73,7 @@ func (h *HomeworkSubmissionHandler) GetHomeworkSubmissionById(c *fiber.Ctx) erro
 
 	homeworkSubmission, err := h.homeworkSubmissionService.GetHomeworkSubmissionById(c.UserContext(), homeworkSubmissionId, userId)
 	if err != nil {
-		return response.Fail(c, fiber.StatusInternalServerError, err.Error(), "INTERNAL_SERVER_ERROR")
+		return httperr.Fail(c, err)
 	}
 
 	return response.OK(c, "Homework submission fetched successfully", homeworkSubmission)
@@ -91,7 +97,26 @@ func (h *HomeworkSubmissionHandler) GetHomeworkSubmissionsByHomeworkId(c *fiber.
 
 	homeworkSubmissions, err := h.homeworkSubmissionService.GetHomeworkSubmissionsByHomeworkId(c.UserContext(), homeworkId, userId, params)
 	if err != nil {
-		return response.Fail(c, fiber.StatusInternalServerError, err.Error(), "INTERNAL_SERVER_ERROR")
+		return httperr.Fail(c, err)
+	}
+
+	return response.OK(c, "Homework submissions fetched successfully", homeworkSubmissions)
+}
+
+func (h *HomeworkSubmissionHandler) GetHomeworkSubmissionsByHomeworkIdByGuardian(c *fiber.Ctx) error {
+	userId, err := middleware.UserIDFromCtx(c)
+	if err != nil {
+		return response.Fail(c, fiber.StatusUnauthorized, string(common.ErrUnauthorized), "UNAUTHORIZED")
+	}
+
+	homeworkId := c.Params("homework_id")
+	if homeworkId == "" {
+		return response.Fail(c, fiber.StatusBadRequest, "Homework ID is required", "BAD_REQUEST")
+	}
+
+	homeworkSubmissions, err := h.homeworkSubmissionService.GetHomeworkSubmissionsByHomeworkIdByGuardian(c.UserContext(), homeworkId, userId)
+	if err != nil {
+		return httperr.Fail(c, err)
 	}
 
 	return response.OK(c, "Homework submissions fetched successfully", homeworkSubmissions)

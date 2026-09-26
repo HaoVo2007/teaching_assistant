@@ -64,11 +64,11 @@ type Question struct {
 	Grade        string             `bson:"grade"`
 	Difficulty   string             `bson:"difficulty"`
 	Question     string             `bson:"question"`
-	Options      []string           `bson:"options,omitempty"`
-	CorrectIndex *int               `bson:"correct_index,omitempty"`
-	CorrectBool  *bool              `bson:"correct_bool,omitempty"`
-	Pairs        []Pair             `bson:"pairs,omitempty"`
-	Explanation  string             `bson:"explanation,omitempty"`
+	Options      []string           `bson:"options,omitempty"` // only for multiple_choice type
+	CorrectIndex *int               `bson:"correct_index,omitempty"` // only for multiple_choice type
+	CorrectBool  *bool              `bson:"correct_bool,omitempty"` // only for true_false type
+	Pairs        []Pair             `bson:"pairs,omitempty"` // only for matching type
+	Explanation  string             `bson:"explanation,omitempty"` 
 	CreatedBy    string             `bson:"created_by"`
 	CreatedAt    time.Time          `bson:"created_at"`
 	UpdatedAt    time.Time          `bson:"updated_at"`

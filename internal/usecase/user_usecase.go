@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"errors"
 	"teaching_assistant/internal/delivery/http/mapper"
 	"teaching_assistant/internal/delivery/http/request"
 	"teaching_assistant/internal/delivery/http/response"
@@ -31,15 +30,15 @@ func NewUserUsecase(
 
 func (s *userUsecase) Register(ctx context.Context, req request.CreateUserRequest) (*response.AuthResponse, error) {
 	if req.Username == "" {
-		return nil, errors.New(string(user.ErrInvalidName))
+		return nil, user.ErrInvalidName
 	}
 
 	if req.Email == "" {
-		return nil, errors.New(string(user.ErrInvalidEmail))
+		return nil, user.ErrInvalidEmail
 	}
 
 	if req.Password == "" {
-		return nil, errors.New(string(user.ErrInvalidPassword))
+		return nil, user.ErrInvalidPassword
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
@@ -47,51 +46,54 @@ func (s *userUsecase) Register(ctx context.Context, req request.CreateUserReques
 		return nil, err
 	}
 
-	user := &user.User{
+	item := &user.User{
 		ID:        primitive.NewObjectID(),
 		Username:  req.Username,
 		Email:     req.Email,
 		Password:  string(hash),
-		Role:      user.RoleUser,
+		Role:      user.RoleTeacher,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
 
-	if err := s.userRepo.Create(ctx, user); err != nil {
+	if err := s.userRepo.Create(ctx, item); err != nil {
 		return nil, err
 	}
 
-	token, err := s.jwtManager.GenerateToken(user.ID.Hex(), user.Username, user.Email, string(user.Role))
+	token, err := s.jwtManager.GenerateToken(item.ID.Hex(), item.Username, item.Email, string(item.Role))
 	if err != nil {
 		return nil, err
 	}
 
 	return &response.AuthResponse{
 		Token: token,
-		User:  mapper.MapUserToUserResponse(user),
+		User:  *mapper.MapUserToUserResponse(item),
 	}, nil
 }
 
 func (s *userUsecase) Login(ctx context.Context, req request.LoginUserRequest) (*response.AuthResponse, error) {
 	if req.Email == "" {
-		return nil, errors.New(string(user.ErrInvalidEmail))
+		return nil, user.ErrInvalidEmail
 	}
 
 	if req.Password == "" {
-		return nil, errors.New(string(user.ErrInvalidPassword))
+		return nil, user.ErrInvalidPassword
 	}
 
 	userRes, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
+		if err == user.ErrUserNotFound {
+			return nil, user.ErrInvalidCredentials
+		}
 		return nil, err
 	}
 
 	if userRes == nil {
-		return nil, errors.New(string(user.ErrUserNotFound))
+		return nil, user.ErrInvalidCredentials
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(userRes.Password), []byte(req.Password)); err != nil {
-		return nil, err
+		return nil, user.ErrInvalidCredentials
 	}
 
 	token, err := s.jwtManager.GenerateToken(userRes.ID.Hex(), userRes.Username, userRes.Email, string(userRes.Role))
@@ -101,18 +103,18 @@ func (s *userUsecase) Login(ctx context.Context, req request.LoginUserRequest) (
 
 	return &response.AuthResponse{
 		Token: token,
-		User:  mapper.MapUserToUserResponse(userRes),
+		User:  *mapper.MapUserToUserResponse(userRes),
 	}, nil
 }
 
 func (s *userUsecase) Logout(ctx context.Context, userId string) error {
 	if userId == "" {
-		return errors.New(string(user.ErrUnauthorized))
+		return user.ErrUnauthorized
 	}
 
 	objectId, err := primitive.ObjectIDFromHex(userId)
 	if err != nil {
-		return err
+		return user.ErrUnauthorized
 	}
 
 	userRes, err := s.userRepo.FindById(ctx, objectId)
@@ -121,8 +123,47 @@ func (s *userUsecase) Logout(ctx context.Context, userId string) error {
 	}
 
 	if userRes == nil {
-		return errors.New(string(user.ErrUserNotFound))
+		return user.ErrUserNotFound
 	}
 
 	return nil
+}
+
+func (s *userUsecase) CreateUser(ctx context.Context, req request.CreateUserRequest) (*response.UserResponse, error) {
+	if req.Username == "" {
+		return nil, user.ErrInvalidName
+	}
+
+	if req.Email == "" {
+		return nil, user.ErrInvalidEmail
+	}
+
+	if req.Password == "" {
+		return nil, user.ErrInvalidPassword
+	}
+
+	if req.Role != string(user.RoleTeacher) && req.Role != string(user.RoleParent) {
+		return nil, user.ErrInvalidRole
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
+
+	item := &user.User{
+		ID:        primitive.NewObjectID(),
+		Username:  req.Username,
+		Email:     req.Email,
+		Password:  string(hash),
+		Role:      user.Role(req.Role),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	if err := s.userRepo.Create(ctx, item); err != nil {
+		return nil, err
+	}
+
+	return mapper.MapUserToUserResponse(item), nil
 }

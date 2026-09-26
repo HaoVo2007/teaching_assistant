@@ -7,6 +7,6 @@ import (
 )
 
 type StudentService interface {
-	ClaimStudent(ctx context.Context, userId string, req request.ClaimStudentRequest) error
+	ClaimStudent(ctx context.Context, req request.ClaimStudentRequest) error
 	GetStudentsByGuardian(ctx context.Context, userId string) (*response.StudentResponse, error)
 }

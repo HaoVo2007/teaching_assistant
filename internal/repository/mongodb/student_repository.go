@@ -2,7 +2,6 @@ package mongodb
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"teaching_assistant/internal/domain/class"
@@ -90,7 +89,7 @@ func (r *studentRepository) GetStudentByCode(ctx context.Context, code string) (
 func (r *studentRepository) CreateGuardian(ctx context.Context, guardian *student.Guardian) error {
 	_, err := r.guardianCollection.InsertOne(ctx, guardian)
 	if mongo.IsDuplicateKeyError(err) {
-		return errors.New(string(student.ErrGuardianAlreadyExists))
+		return student.ErrGuardianAlreadyExists
 	}
 	return err
 }

@@ -14,4 +14,5 @@ type HomeworkService interface {
 	UpdateHomeworkById(ctx context.Context, userId string, id string, req request.UpdateHomeworkRequest) error
 	DeleteHomeworkById(ctx context.Context, userId string, id string) error
 	GetHomeworksByClassId(ctx context.Context, userId string, classId string, params pagination.Params) (*response.HomeworkResponseWithMeta, error)
+	GetHomeworksByStudentId(ctx context.Context, userId string, params pagination.Params) (*response.HomeworkResponseWithMeta, error)
 }

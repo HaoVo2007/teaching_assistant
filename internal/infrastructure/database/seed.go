@@ -54,8 +54,8 @@ func Seed(ctx context.Context, db *mongo.Database) error {
 
 	users := []any{
 		newUser(adminID, "admin", "admin@demo.local", password, user.RoleAdmin, now),
-		newUser(teacherLanID, "nguyen_thi_lan", seedMarkerEmail, password, user.RoleUser, now),
-		newUser(teacherMinhID, "tran_van_minh", "gv.minh@demo.local", password, user.RoleUser, now),
+		newUser(teacherLanID, "nguyen_thi_lan", seedMarkerEmail, password, user.RoleTeacher, now),
+		newUser(teacherMinhID, "tran_van_minh", "gv.minh@demo.local", password, user.RoleTeacher, now),
 	}
 	for i, id := range parentIDs {
 		users = append(users, newUser(
@@ -528,7 +528,7 @@ func seedSubmissions(
 		docs = append(docs, &homeworksubmission.HomeworkSubmission{
 			ID:             primitive.NewObjectID(),
 			HomeworkID:     homeworkID,
-			StudentName:    st.Name,
+			StudentID:      st.ID.Hex(),
 			IsSubmitted:    true,
 			StudentAnswers: answers,
 			SubmittedAt:    submittedAt.Add(time.Duration(i) * time.Minute),

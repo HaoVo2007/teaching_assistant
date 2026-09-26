@@ -9,9 +9,10 @@ import (
 type HomeworkSubmission struct {
 	ID             primitive.ObjectID `bson:"_id" json:"id"`
 	HomeworkID     string             `bson:"homework_id" json:"homework_id"`
-	StudentName    string             `bson:"student_name" json:"student_name"`
+	StudentID      string             `bson:"student_id" json:"student_id"`
 	IsSubmitted    bool               `bson:"is_submitted" json:"is_submitted"`
 	StudentAnswers []StudentAnswer    `bson:"student_answers" json:"student_answers"`
+	SubmittedBy    string             `bson:"submitted_by" json:"submitted_by"`
 	SubmittedAt    time.Time          `bson:"submitted_at" json:"submitted_at"`
 	TeacherID      string             `bson:"teacher_id" json:"teacher_id"`
 	CreatedAt      time.Time          `bson:"created_at" json:"created_at"`

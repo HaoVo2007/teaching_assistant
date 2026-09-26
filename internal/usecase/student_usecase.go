@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"errors"
 	"teaching_assistant/internal/delivery/http/mapper"
 	"teaching_assistant/internal/delivery/http/request"
 	"teaching_assistant/internal/delivery/http/response"
@@ -22,9 +21,13 @@ func NewStudentUsecase(studentRepo student.StudentRepository) student.StudentSer
 	}
 }
 
-func (u *studentUsecase) ClaimStudent(ctx context.Context, userId string, req request.ClaimStudentRequest) error {
+func (u *studentUsecase) ClaimStudent(ctx context.Context, req request.ClaimStudentRequest) error {
 	if req.Code == "" {
-		return errors.New(string(student.ErrInvalidStudentCode))
+		return student.ErrInvalidStudentCode
+	}
+
+	if req.ParentId == "" {
+		return student.ErrInvalidParentID
 	}
 
 	studentData, err := u.studentRepo.GetStudentByCode(ctx, req.Code)
@@ -33,12 +36,21 @@ func (u *studentUsecase) ClaimStudent(ctx context.Context, userId string, req re
 	}
 
 	if studentData == nil {
-		return errors.New(string(student.ErrStudentNotFound))
+		return student.ErrStudentNotFound
+	}
+
+	guardianData, err := u.studentRepo.GetGuardianByParentId(ctx, req.ParentId)
+	if err != nil {
+		return err
+	}
+
+	if guardianData != nil {
+		return student.ErrGuardianAlreadyExists
 	}
 
 	guardian := &student.Guardian{
 		ID:        primitive.NewObjectID(),
-		ParentID:  userId,
+		ParentID:  req.ParentId,
 		StudentID: studentData.ID.Hex(),
 		Role:      "guardian",
 		CreatedAt: time.Now(),
@@ -59,12 +71,12 @@ func (u *studentUsecase) GetStudentsByGuardian(ctx context.Context, userId strin
 	}
 
 	if guardian == nil {
-		return nil, errors.New(string(student.ErrGuardianNotFound))
+		return nil, student.ErrGuardianNotFound
 	}
 
 	objectId, err := primitive.ObjectIDFromHex(guardian.StudentID)
 	if err != nil {
-		return nil, err
+		return nil, student.ErrStudentNotFound
 	}
 
 	studentData, err := u.studentRepo.GetStudentById(ctx, objectId)
@@ -73,10 +85,8 @@ func (u *studentUsecase) GetStudentsByGuardian(ctx context.Context, userId strin
 	}
 
 	if studentData == nil {
-		return nil, errors.New(string(student.ErrStudentNotFound))
+		return nil, student.ErrStudentNotFound
 	}
 
-	studentResponse := mapper.MapStudentToResponse(studentData, nil)
-
-	return studentResponse, nil
+	return mapper.MapStudentToResponse(studentData, nil), nil
 }

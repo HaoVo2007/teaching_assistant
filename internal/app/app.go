@@ -132,11 +132,13 @@ func (a *Application) initServices() {
 		a.repositories.QuestionRepository,
 		a.repositories.ClassRepository,
 		a.repositories.HomeworkSubmissionRepository,
+		a.repositories.StudentRepository,
 	)
 	a.services.HomeworkSubmissionService = usecase.NewHomeworkSubmissionUsecase(
 		a.repositories.HomeworkSubmissionRepository,
 		a.repositories.HomeworkRepository,
 		a.repositories.QuestionRepository,
+		a.repositories.StudentRepository,
 	)
 	a.services.StudentService = usecase.NewStudentUsecase(a.repositories.StudentRepository)
 }

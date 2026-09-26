@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base32"
-	"errors"
 	"mime/multipart"
 	"strings"
 	"teaching_assistant/internal/delivery/http/mapper"
@@ -47,7 +46,7 @@ func NewClassUsecase(
 
 func (u *classUsecase) CreateClass(ctx context.Context, userId string, req request.CreateClassRequest) error {
 	if req.Name == "" {
-		return errors.New(string(class.ErrInvalidClass))
+		return class.ErrInvalidClass
 	}
 
 	image, publicID, err := u.uploadClassImage(ctx, req.Image)
@@ -265,7 +264,7 @@ func (u *classUsecase) UpdateClassById(ctx context.Context, userId string, id st
 
 	if req.Name != nil {
 		if *req.Name == "" {
-			return errors.New(string(class.ErrInvalidClass))
+			return class.ErrInvalidClass
 		}
 		item.Name = *req.Name
 	}
@@ -428,16 +427,16 @@ func (u *classUsecase) DeleteClassById(ctx context.Context, userId string, id st
 func (u *classUsecase) getOwnedClass(ctx context.Context, userId, id string) (*class.Class, error) {
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return nil, err
+		return nil, class.ErrClassNotFound
 	}
 
 	item, err := u.classRepo.GetClassById(ctx, objectId)
 	if err != nil {
-		return nil, errors.New(string(class.ErrClassNotFound))
+		return nil, class.ErrClassNotFound
 	}
 
 	if item.CreatedBy != userId {
-		return nil, errors.New(string(class.ErrUnauthorized))
+		return nil, class.ErrUnauthorized
 	}
 
 	return item, nil

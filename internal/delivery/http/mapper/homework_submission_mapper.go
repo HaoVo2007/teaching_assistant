@@ -119,11 +119,12 @@ func MapHomeworkSubmissionToResponse(
 	return &response.HomeworkSubmissionResponse{
 		ID:             submission.ID.Hex(),
 		HomeworkID:     submission.HomeworkID,
-		StudentName:    submission.StudentName,
+		StudentID:      submission.StudentID,
 		IsSubmitted:    submission.IsSubmitted,
 		StudentAnswers: answers,
 		TotalScore:     round2(total),
 		MaxScore:       homeworkMaxScore,
+		SubmittedBy:    submission.SubmittedBy,
 		SubmittedAt:    submission.SubmittedAt,
 		CreatedAt:      submission.CreatedAt,
 		UpdatedAt:      submission.UpdatedAt,

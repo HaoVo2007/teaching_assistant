@@ -28,3 +28,7 @@ const (
 	ErrCannotChangeOwnRole    Error = "cannot change own role"
 	ErrInsufficientPermission Error = "insufficient permission"
 )
+
+func (e Error) Error() string {
+	return string(e)
+}

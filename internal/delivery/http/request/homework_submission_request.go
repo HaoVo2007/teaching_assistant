@@ -2,7 +2,6 @@ package request
 
 type CreateHomeworkSubmissionRequest struct {
 	HomeworkID     string          `json:"homework_id"`
-	StudentName    string          `json:"student_name"`
 	StudentAnswers []StudentAnswer `json:"student_answers"`
 }
 

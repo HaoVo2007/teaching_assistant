@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"teaching_assistant/internal/delivery/http/mapper"
@@ -11,6 +10,7 @@ import (
 	"teaching_assistant/internal/domain/homework"
 	homeworksubmission "teaching_assistant/internal/domain/homework_submission"
 	"teaching_assistant/internal/domain/question"
+	"teaching_assistant/internal/domain/student"
 	"teaching_assistant/pkg/pagination"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -20,45 +20,77 @@ type homeworkSubmissionUsecase struct {
 	homeworkSubmissionRepository homeworksubmission.HomeworkSubmissionRepository
 	homeworkRepository           homework.HomeworkRepository
 	questionRepository           question.QuestionRepository
+	studentRepository            student.StudentRepository
 }
 
 func NewHomeworkSubmissionUsecase(
 	homeworkSubmissionRepository homeworksubmission.HomeworkSubmissionRepository,
 	homeworkRepository homework.HomeworkRepository,
 	questionRepository question.QuestionRepository,
+	studentRepository student.StudentRepository,
 ) homeworksubmission.HomeworkSubmissionService {
 	return &homeworkSubmissionUsecase{
 		homeworkSubmissionRepository: homeworkSubmissionRepository,
 		homeworkRepository:           homeworkRepository,
 		questionRepository:           questionRepository,
+		studentRepository:            studentRepository,
 	}
 }
 
-func (s *homeworkSubmissionUsecase) CreateHomeworkSubmission(ctx context.Context, req request.CreateHomeworkSubmissionRequest) error {
+func (s *homeworkSubmissionUsecase) CreateHomeworkSubmission(ctx context.Context, req request.CreateHomeworkSubmissionRequest, userId string) error {
 	if req.HomeworkID == "" {
-		return errors.New(string(homeworksubmission.ErrInvalidHomeworkSubmission))
+		return homeworksubmission.ErrInvalidHomeworkSubmission
 	}
 
 	objectId, err := primitive.ObjectIDFromHex(req.HomeworkID)
 	if err != nil {
-		return errors.New(string(homeworksubmission.ErrInvalidHomeworkSubmission))
+		return homeworksubmission.ErrInvalidHomeworkSubmission
 	}
 
-	if req.StudentName == "" {
-		return errors.New(string(homeworksubmission.ErrInvalidHomeworkSubmission))
+	guardian, err := s.studentRepository.GetGuardianByParentId(ctx, userId)
+	if err != nil {
+		return student.ErrGuardianNotFound
+	}
+
+	if guardian == nil {
+		return student.ErrGuardianNotFound
+	}
+
+	studentId, err := primitive.ObjectIDFromHex(guardian.StudentID)
+	if err != nil {
+		return student.ErrStudentNotFound
+	}
+
+	studentRes, err := s.studentRepository.GetStudentById(ctx, studentId)
+	if err != nil {
+		return student.ErrStudentNotFound
+	}
+
+	if studentRes == nil {
+		return student.ErrStudentNotFound
 	}
 
 	if len(req.StudentAnswers) == 0 {
-		return errors.New(string(homeworksubmission.ErrInvalidHomeworkSubmission))
+		return homeworksubmission.ErrInvalidHomeworkSubmission
 	}
 
 	hw, err := s.homeworkRepository.GetHomeworkById(ctx, objectId)
 	if err != nil {
-		return errors.New(string(homeworksubmission.ErrHomeworkSubmissionNotFound))
+		return homework.ErrHomeworkNotFound
 	}
 
 	if hw == nil {
-		return errors.New(string(homeworksubmission.ErrHomeworkSubmissionNotFound))
+		return homework.ErrHomeworkNotFound
+	}
+
+	if studentRes.ClassID != hw.ClassID {
+		return homeworksubmission.ErrStudentNotInClass
+	}
+
+	dueDateUtc := hw.DueDate.UTC()
+	nowUtc := time.Now().UTC()
+	if nowUtc.After(dueDateUtc) {
+		return homeworksubmission.ErrHomeworkSubmissionDueDateExpired
 	}
 
 	questions, err := s.loadHomeworkQuestions(ctx, hw.Questions)
@@ -82,21 +114,17 @@ func (s *homeworkSubmissionUsecase) CreateHomeworkSubmission(ctx context.Context
 	submission := &homeworksubmission.HomeworkSubmission{
 		ID:             primitive.NewObjectID(),
 		HomeworkID:     req.HomeworkID,
-		StudentName:    req.StudentName,
+		StudentID:      studentId.Hex(),
 		IsSubmitted:    true,
 		StudentAnswers: studentAnswers,
 		TeacherID:      hw.CreatedBy,
+		SubmittedBy:    userId,
 		SubmittedAt:    time.Now(),
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 	}
 
-	err = s.homeworkSubmissionRepository.CreateHomeworkSubmission(ctx, submission)
-	if err != nil {
-		return errors.New(string(homeworksubmission.ErrHomeworkSubmissionInternal))
-	}
-
-	return nil
+	return s.homeworkSubmissionRepository.CreateHomeworkSubmission(ctx, submission)
 }
 
 func (s *homeworkSubmissionUsecase) GetHomeworkSubmissions(ctx context.Context, params pagination.Params, userId string) (*response.HomeworkSubmissionResponseWithMeta, error) {
@@ -119,7 +147,7 @@ func (s *homeworkSubmissionUsecase) GetHomeworkSubmissions(ctx context.Context, 
 func (s *homeworkSubmissionUsecase) GetHomeworkSubmissionById(ctx context.Context, id string, userId string) (*response.HomeworkSubmissionResponse, error) {
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return nil, errors.New(string(homeworksubmission.ErrHomeworkSubmissionNotFound))
+		return nil, homeworksubmission.ErrHomeworkSubmissionNotFound
 	}
 
 	submission, err := s.homeworkSubmissionRepository.GetHomeworkSubmissionById(ctx, objectId)
@@ -128,16 +156,16 @@ func (s *homeworkSubmissionUsecase) GetHomeworkSubmissionById(ctx context.Contex
 	}
 
 	if submission == nil {
-		return nil, errors.New(string(homeworksubmission.ErrHomeworkSubmissionNotFound))
+		return nil, homeworksubmission.ErrHomeworkSubmissionNotFound
 	}
 
 	if submission.TeacherID != userId {
-		return nil, errors.New(string(homeworksubmission.ErrHomeworkSubmissionNotFound))
+		return nil, homeworksubmission.ErrHomeworkSubmissionNotFound
 	}
 
 	homeworkId, err := primitive.ObjectIDFromHex(submission.HomeworkID)
 	if err != nil {
-		return nil, errors.New(string(homeworksubmission.ErrHomeworkSubmissionNotFound))
+		return nil, homeworksubmission.ErrHomeworkSubmissionNotFound
 	}
 
 	homework, err := s.homeworkRepository.GetHomeworkById(ctx, homeworkId)
@@ -146,7 +174,7 @@ func (s *homeworkSubmissionUsecase) GetHomeworkSubmissionById(ctx context.Contex
 	}
 
 	if homework == nil {
-		return nil, errors.New(string(homeworksubmission.ErrHomeworkSubmissionNotFound))
+		return nil, homeworksubmission.ErrHomeworkSubmissionNotFound
 	}
 
 	questionsByID, err := s.loadHomeworkQuestions(ctx, homework.Questions)
@@ -162,7 +190,7 @@ func (s *homeworkSubmissionUsecase) GetHomeworkSubmissionById(ctx context.Contex
 func (s *homeworkSubmissionUsecase) GetHomeworkSubmissionsByHomeworkId(ctx context.Context, homeworkId string, userId string, params pagination.Params) (*response.HomeworkSubmissionResponseWithMeta, error) {
 	objectId, err := primitive.ObjectIDFromHex(homeworkId)
 	if err != nil {
-		return nil, errors.New(string(homeworksubmission.ErrHomeworkSubmissionNotFound))
+		return nil, homeworksubmission.ErrHomeworkSubmissionNotFound
 	}
 
 	homework, err := s.homeworkRepository.GetHomeworkById(ctx, objectId)
@@ -171,11 +199,11 @@ func (s *homeworkSubmissionUsecase) GetHomeworkSubmissionsByHomeworkId(ctx conte
 	}
 
 	if homework == nil {
-		return nil, errors.New(string(homeworksubmission.ErrHomeworkSubmissionNotFound))
+		return nil, homeworksubmission.ErrHomeworkSubmissionNotFound
 	}
 
 	if homework.CreatedBy != userId {
-		return nil, errors.New(string(homeworksubmission.ErrHomeworkSubmissionNotFound))
+		return nil, homeworksubmission.ErrHomeworkSubmissionNotFound
 	}
 
 	submissions, total, err := s.homeworkSubmissionRepository.GetHomeworkSubmissionsByHomeworkId(ctx, homeworkId, userId, params)
@@ -193,6 +221,69 @@ func (s *homeworkSubmissionUsecase) GetHomeworkSubmissionsByHomeworkId(ctx conte
 		Meta:                pagination.NewMeta(params, total),
 	}, nil
 
+}
+
+func (s *homeworkSubmissionUsecase) GetHomeworkSubmissionsByHomeworkIdByGuardian(ctx context.Context, homeworkId string, userId string) (*response.HomeworkSubmissionResponse, error) {
+	guardian, err := s.studentRepository.GetGuardianByParentId(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	if guardian == nil {
+		return nil, student.ErrGuardianNotFound
+	}
+
+	studentId, err := primitive.ObjectIDFromHex(guardian.StudentID)
+	if err != nil {
+		return nil, student.ErrStudentNotFound
+	}
+
+	studentRes, err := s.studentRepository.GetStudentById(ctx, studentId)
+	if err != nil {
+		return nil, student.ErrStudentNotFound
+	}
+
+	if studentRes == nil {
+		return nil, student.ErrStudentNotFound
+	}
+
+	submission, err := s.homeworkSubmissionRepository.GetHomeworkSubmissionsOfStudentByHomeworkId(ctx, homeworkId, studentRes.ID.Hex())
+	if err != nil {
+		return nil, err
+	}
+
+	if submission == nil {
+		return nil, homeworksubmission.ErrHomeworkSubmissionNotFound
+	}
+
+	if submission.SubmittedBy != userId {
+		if submission.SubmittedBy != "" {
+			return nil, homeworksubmission.ErrHomeworkSubmissionNotFound
+		}
+	}
+
+	homeworkIdObjectID, err := primitive.ObjectIDFromHex(submission.HomeworkID)
+	if err != nil {
+		return nil, homeworksubmission.ErrHomeworkSubmissionNotFound
+	}
+
+	homework, err := s.homeworkRepository.GetHomeworkById(ctx, homeworkIdObjectID)
+	if err != nil {
+		return nil, err
+	}
+
+	if homework == nil {
+		return nil, homeworksubmission.ErrHomeworkSubmissionNotFound
+	}
+
+	questionsByID, err := s.loadHomeworkQuestions(ctx, homework.Questions)
+	if err != nil {
+		return nil, err
+	}
+
+	response := mapper.MapHomeworkSubmissionToResponse(submission, homework, questionsByID)
+
+	return response, nil
 }
 
 func (s *homeworkSubmissionUsecase) loadSubmissionRelations(
@@ -261,7 +352,7 @@ func (s *homeworkSubmissionUsecase) loadHomeworkQuestions(ctx context.Context, q
 	for _, id := range questionIDs {
 		oid, err := primitive.ObjectIDFromHex(id)
 		if err != nil {
-			return nil, errors.New(string(homeworksubmission.ErrQuestionMismatch))
+			return nil, homeworksubmission.ErrQuestionMismatch
 		}
 		oids = append(oids, oid)
 	}
@@ -287,7 +378,7 @@ func validateStudentAnswers(
 	questionsByID map[string]*question.Question,
 ) error {
 	if len(answers) != len(homeworkQuestionIDs) {
-		return errors.New(string(homeworksubmission.ErrQuestionMismatch))
+		return homeworksubmission.ErrQuestionMismatch
 	}
 
 	homeworkSet := make(map[string]struct{}, len(homeworkQuestionIDs))
@@ -298,19 +389,19 @@ func validateStudentAnswers(
 	seen := make(map[string]struct{}, len(answers))
 	for _, answer := range answers {
 		if answer.QuestionID == "" {
-			return errors.New(string(homeworksubmission.ErrQuestionMismatch))
+			return homeworksubmission.ErrQuestionMismatch
 		}
 		if _, ok := homeworkSet[answer.QuestionID]; !ok {
-			return errors.New(string(homeworksubmission.ErrQuestionMismatch))
+			return homeworksubmission.ErrQuestionMismatch
 		}
 		if _, dup := seen[answer.QuestionID]; dup {
-			return errors.New(string(homeworksubmission.ErrQuestionMismatch))
+			return homeworksubmission.ErrQuestionMismatch
 		}
 		seen[answer.QuestionID] = struct{}{}
 
 		q, ok := questionsByID[answer.QuestionID]
 		if !ok {
-			return errors.New(string(homeworksubmission.ErrQuestionMismatch))
+			return homeworksubmission.ErrQuestionMismatch
 		}
 
 		if err := validateAnswerByType(q.Type, answer); err != nil {
@@ -319,7 +410,7 @@ func validateStudentAnswers(
 	}
 
 	if len(seen) != len(homeworkSet) {
-		return errors.New(string(homeworksubmission.ErrQuestionMismatch))
+		return homeworksubmission.ErrQuestionMismatch
 	}
 
 	return nil
@@ -329,14 +420,14 @@ func validateAnswerByType(questionType string, answer request.StudentAnswer) err
 	switch question.QuestionType(questionType) {
 	case question.QuestionTypeMultipleChoice:
 		if answer.SelectedIndex == nil {
-			return errors.New(string(homeworksubmission.ErrInvalidStudentAnswer))
+			return homeworksubmission.ErrInvalidStudentAnswer
 		}
 	case question.QuestionTypeTrueFalse:
 		if answer.SelectedBool == nil {
-			return errors.New(string(homeworksubmission.ErrInvalidStudentAnswer))
+			return homeworksubmission.ErrInvalidStudentAnswer
 		}
 	default:
-		return errors.New(string(homeworksubmission.ErrInvalidStudentAnswer))
+		return homeworksubmission.ErrInvalidStudentAnswer
 	}
 	return nil
 }
