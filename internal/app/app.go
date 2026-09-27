@@ -117,7 +117,6 @@ func (a *Application) initServices() {
 		a.repositories.QuestionSetRepository,
 		a.repositories.HomeworkRepository,
 		a.repositories.HomeworkSubmissionRepository,
-		a.cloudinary,
 	)
 	a.services.QuestionSetService = usecase.NewQuestionSetUsecase(a.repositories.QuestionSetRepository, a.repositories.QuestionRepository)
 	a.services.ClassService = usecase.NewClassUsecase(
@@ -140,7 +139,11 @@ func (a *Application) initServices() {
 		a.repositories.QuestionRepository,
 		a.repositories.StudentRepository,
 	)
-	a.services.StudentService = usecase.NewStudentUsecase(a.repositories.StudentRepository)
+	a.services.StudentService = usecase.NewStudentUsecase(
+		a.repositories.StudentRepository,
+		a.repositories.UserRepository,
+		a.repositories.ClassRepository,
+	)
 }
 
 func (a *Application) initHandlers() {
@@ -150,6 +153,7 @@ func (a *Application) initHandlers() {
 	a.handlers.ClassHandler = httpHandler.NewClassHandler(a.services.ClassService)
 	a.handlers.HomeworkHandler = httpHandler.NewHomeworkHandler(a.services.HomeworkService)
 	a.handlers.HomeworkSubmissionHandler = httpHandler.NewHomeworkSubmissionHandler(a.services.HomeworkSubmissionService)
+	a.handlers.StudentHandler = httpHandler.NewStudentHandler(a.services.StudentService)
 }
 
 func (a *Application) initJwtManager() {

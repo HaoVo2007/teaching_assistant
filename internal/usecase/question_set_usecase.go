@@ -30,7 +30,7 @@ func NewQuestionSetUsecase(
 }
 
 func (s *questionSetUsecase) CreateQuestionSet(ctx context.Context, userId string, req request.CreateQuestionSetRequest) error {
-	if req.QuestionType == "" {
+	if !questionset.IsSupportedType(req.QuestionType) {
 		return questionset.ErrInvalidQuestionType
 	}
 
@@ -82,6 +82,10 @@ func (s *questionSetUsecase) CreateQuestionSet(ctx context.Context, userId strin
 }
 
 func (s *questionSetUsecase) GetQuestionSets(ctx context.Context, userId string, params pagination.Params, title string, questionType string) (*response.QuestionSetResponseWithMeta, error) {
+	if questionType != "" && !questionset.IsSupportedType(questionType) {
+		return nil, questionset.ErrInvalidQuestionType
+	}
+
 	questionSets, total, err := s.questionSetRepo.GetQuestionSets(ctx, userId, params, title, questionType)
 	if err != nil {
 		return nil, err

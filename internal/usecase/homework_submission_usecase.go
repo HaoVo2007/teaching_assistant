@@ -252,17 +252,15 @@ func (s *homeworkSubmissionUsecase) GetHomeworkSubmissionsByHomeworkIdByGuardian
 		return nil, err
 	}
 
-	if submission == nil {
-		return nil, homeworksubmission.ErrHomeworkSubmissionNotFound
-	}
-
-	if submission.SubmittedBy != userId {
-		if submission.SubmittedBy != "" {
-			return nil, homeworksubmission.ErrHomeworkSubmissionNotFound
+	if submission != nil {
+		if submission.SubmittedBy != userId {
+			if submission.SubmittedBy != "" {
+				return nil, homeworksubmission.ErrHomeworkSubmissionNotFound
+			}
 		}
 	}
 
-	homeworkIdObjectID, err := primitive.ObjectIDFromHex(submission.HomeworkID)
+	homeworkIdObjectID, err := primitive.ObjectIDFromHex(homeworkId)
 	if err != nil {
 		return nil, homeworksubmission.ErrHomeworkSubmissionNotFound
 	}

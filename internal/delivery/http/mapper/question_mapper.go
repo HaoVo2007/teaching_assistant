@@ -8,63 +8,43 @@ import (
 func MapQuestionsToResponses(questions []*question.Question) []*response.QuestionResponse {
 	responses := make([]*response.QuestionResponse, 0)
 	for _, q := range questions {
-		pairs := make([]response.Pair, 0)
-		for _, p := range q.Pairs {
-			pairs = append(pairs, response.Pair{
-				Left:          p.Left,
-				LeftPublicID:  p.LeftPublicID,
-				LeftKind:      p.LeftKind,
-				Right:         p.Right,
-				RightPublicID: p.RightPublicID,
-				RightKind:     p.RightKind,
-			})
-		}
-		responses = append(responses, &response.QuestionResponse{
-			ID:           q.ID.Hex(),
-			Type:         q.Type,
-			Subject:      q.Subject,
-			Grade:        q.Grade,
-			Difficulty:   q.Difficulty,
-			Question:     q.Question,
-			Options:      q.Options,
-			CorrectIndex: q.CorrectIndex,
-			CorrectBool:  q.CorrectBool,
-			Pairs:        pairs,
-			Explanation:  q.Explanation,
-			CreatedBy:    q.CreatedBy,
-			CreatedAt:    q.CreatedAt,
-			UpdatedAt:    q.UpdatedAt,
-		})
+		responses = append(responses, MapQuestionToResponse(q))
 	}
 	return responses
 }
 
-func MapQuestionToResponse(question *question.Question) *response.QuestionResponse {
-	pairs := make([]response.Pair, 0)
-	for _, p := range question.Pairs {
-		pairs = append(pairs, response.Pair{
-			Left:          p.Left,
-			LeftPublicID:  p.LeftPublicID,
-			LeftKind:      p.LeftKind,
-			Right:         p.Right,
-			RightPublicID: p.RightPublicID,
-			RightKind:     p.RightKind,
-		})
-	}
+func MapQuestionToResponse(item *question.Question) *response.QuestionResponse {
 	return &response.QuestionResponse{
-		ID:           question.ID.Hex(),
-		Type:         question.Type,
-		Subject:      question.Subject,
-		Grade:        question.Grade,
-		Difficulty:   question.Difficulty,
-		Question:     question.Question,
-		Options:      question.Options,
-		CorrectIndex: question.CorrectIndex,
-		CorrectBool:  question.CorrectBool,
-		Pairs:        pairs,
-		Explanation:  question.Explanation,
-		CreatedBy:    question.CreatedBy,
-		CreatedAt:    question.CreatedAt,
-		UpdatedAt:    question.UpdatedAt,
+		ID:           item.ID.Hex(),
+		Type:         item.Type,
+		Subject:      item.Subject,
+		Grade:        item.Grade,
+		Difficulty:   item.Difficulty,
+		Question:     item.Question,
+		Options:      item.Options,
+		CorrectIndex: item.CorrectIndex,
+		CorrectBool:  item.CorrectBool,
+		Explanation:  item.Explanation,
+		CreatedBy:    item.CreatedBy,
+		CreatedAt:    item.CreatedAt,
+		UpdatedAt:    item.UpdatedAt,
+	}
+}
+
+func HideQuestionAnswers(q *response.QuestionResponse) {
+	if q == nil {
+		return
+	}
+	q.CorrectIndex = nil
+	q.CorrectBool = nil
+	q.Explanation = ""
+}
+
+func HideHomeworkAnswers(hw *response.HomeworkResponse) {
+	if hw == nil {
+		return
+	}
+	for _, q := range hw.Questions {
+		HideQuestionAnswers(q)
 	}
 }

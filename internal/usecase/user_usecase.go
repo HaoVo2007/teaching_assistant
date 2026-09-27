@@ -7,6 +7,7 @@ import (
 	"teaching_assistant/internal/delivery/http/response"
 	"teaching_assistant/internal/domain/user"
 	"teaching_assistant/pkg/jwt"
+	"teaching_assistant/pkg/pagination"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -166,4 +167,16 @@ func (s *userUsecase) CreateUser(ctx context.Context, req request.CreateUserRequ
 	}
 
 	return mapper.MapUserToUserResponse(item), nil
+}
+
+func (s *userUsecase) GetParents(ctx context.Context, params pagination.Params, q string) (*response.UserResponseWithMeta, error) {
+	parents, total, err := s.userRepo.FindParents(ctx, params, q)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response.UserResponseWithMeta{
+		Parents: mapper.MapUsersToResponses(parents),
+		Meta:    pagination.NewMeta(params, total),
+	}, nil
 }

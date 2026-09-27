@@ -13,3 +13,14 @@ func MapUserToUserResponse(user *user.User) *response.UserResponse {
 		Role:     string(user.Role),
 	}
 }
+
+func MapUsersToResponses(users []*user.User) []*response.UserResponse {
+	out := make([]*response.UserResponse, 0, len(users))
+	for _, item := range users {
+		if item == nil {
+			continue
+		}
+		out = append(out, MapUserToUserResponse(item))
+	}
+	return out
+}

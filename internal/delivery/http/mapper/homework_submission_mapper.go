@@ -116,11 +116,21 @@ func MapHomeworkSubmissionToResponse(
 		})
 	}
 
+	questionResponses := QuestionResponseMap(orderedQuestions)
+	homeworkResponse := MapHomeworkToResponse(hw, questionResponses)
+
+	var isSubmitted bool
+	if submission == nil {
+		isSubmitted = false
+	} else {
+		isSubmitted = true
+	}
+	
 	return &response.HomeworkSubmissionResponse{
 		ID:             submission.ID.Hex(),
-		HomeworkID:     submission.HomeworkID,
+		Homework:       homeworkResponse,
 		StudentID:      submission.StudentID,
-		IsSubmitted:    submission.IsSubmitted,
+		IsSubmitted:    isSubmitted,
 		StudentAnswers: answers,
 		TotalScore:     round2(total),
 		MaxScore:       homeworkMaxScore,

@@ -43,6 +43,11 @@ func NewRouter(
 	{
 		user.Post("/create", userH.CreateUser)
 	}
+
+	users := api.Group("/users")
+	{
+		users.Get("/parents", middleware.RequireRole(jwtManager, userImport.RoleTeacher), userH.GetParents)
+	}
 	// =========================auth routes=========================
 
 	// =========================student routes=========================
@@ -108,8 +113,8 @@ func NewRouter(
 		homeworkSubmission.Post("", middleware.RequireRole(jwtManager, userImport.RoleParent), homeworkSubmissionH.CreateHomeworkSubmission)
 		homeworkSubmission.Get("", middleware.RequireRole(jwtManager, userImport.RoleTeacher), homeworkSubmissionH.GetHomeworkSubmissions)
 		homeworkSubmission.Get("/homework/:homework_id", middleware.RequireRole(jwtManager, userImport.RoleTeacher), homeworkSubmissionH.GetHomeworkSubmissionsByHomeworkId)
-		homeworkSubmission.Get("/:id", middleware.RequireRole(jwtManager, userImport.RoleTeacher), homeworkSubmissionH.GetHomeworkSubmissionById)
 		homeworkSubmission.Get("/student/by-guardian/:homework_id", middleware.RequireRole(jwtManager, userImport.RoleParent), homeworkSubmissionH.GetHomeworkSubmissionsByHomeworkIdByGuardian)
+		homeworkSubmission.Get("/:id", middleware.RequireRole(jwtManager, userImport.RoleTeacher), homeworkSubmissionH.GetHomeworkSubmissionById)
 		// homeworkSubmission.Put("/:id", middleware.AuthMiddleware(jwtManager), homeworkSubmissionH.UpdateHomeworkSubmissionById)
 		// homeworkSubmission.Delete("/:id", middleware.AuthMiddleware(jwtManager), homeworkSubmissionH.DeleteHomeworkSubmissionById)
 	}

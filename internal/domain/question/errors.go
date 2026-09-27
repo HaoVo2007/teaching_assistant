@@ -7,8 +7,6 @@ const (
 	ErrInvalidQuestion  Error = "invalid question"
 	ErrInvalidOptions   Error = "invalid options"
 	ErrInvalidCorrect   Error = "invalid correct answer"
-	ErrInvalidPairs     Error = "invalid matching pairs"
-	ErrImageTooLarge    Error = "image too large"
 	ErrQuestionNotFound Error = "question not found"
 	ErrInvalidSubject   Error = "invalid subject"
 	ErrInvalidGrade     Error = "invalid grade"

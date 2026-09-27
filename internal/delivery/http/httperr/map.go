@@ -148,6 +148,12 @@ func studentMapped(err student.Error) (mapped, bool) {
 		return mapped{fiber.StatusConflict, "This parent already has a student", "PARENT_ALREADY_HAS_STUDENT"}, true
 	case student.ErrStudentNotInClass:
 		return mapped{fiber.StatusForbidden, "Student does not belong to this class", "STUDENT_NOT_IN_CLASS"}, true
+	case student.ErrStudentInactive:
+		return mapped{fiber.StatusForbidden, "Student is not active", "STUDENT_INACTIVE"}, true
+	case student.ErrParentNotFound:
+		return mapped{fiber.StatusNotFound, "Parent not found", "PARENT_NOT_FOUND"}, true
+	case student.ErrNotAParent:
+		return mapped{fiber.StatusBadRequest, "The selected user is not a parent", "NOT_A_PARENT"}, true
 	default:
 		return mapped{}, false
 	}
@@ -163,10 +169,6 @@ func questionMapped(err question.Error) (mapped, bool) {
 		return mapped{fiber.StatusBadRequest, "Question options are invalid", "INVALID_OPTIONS"}, true
 	case question.ErrInvalidCorrect:
 		return mapped{fiber.StatusBadRequest, "Correct answer is invalid", "INVALID_CORRECT_ANSWER"}, true
-	case question.ErrInvalidPairs:
-		return mapped{fiber.StatusBadRequest, "Matching pairs are invalid", "INVALID_PAIRS"}, true
-	case question.ErrImageTooLarge:
-		return mapped{fiber.StatusBadRequest, "Image is too large", "INVALID_IMAGE"}, true
 	case question.ErrInvalidSubject:
 		return mapped{fiber.StatusBadRequest, "Subject is invalid", "INVALID_SUBJECT"}, true
 	case question.ErrInvalidGrade:

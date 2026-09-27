@@ -153,7 +153,7 @@ func Seed(ctx context.Context, db *mongo.Database) error {
 		return err
 	}
 
-	guardians := make([]any, 0, 24)
+	guardians := make([]any, 0, 19)
 	roles := []string{"mother", "father", "guardian", "mother", "father"}
 	for i := 0; i < 18; i++ {
 		guardians = append(guardians, &student.Guardian{
@@ -165,24 +165,14 @@ func Seed(ctx context.Context, db *mongo.Database) error {
 			UpdatedAt: now,
 		})
 	}
-	guardians = append(guardians,
-		&student.Guardian{
-			ID:        primitive.NewObjectID(),
-			ParentID:  parentIDs[0].Hex(),
-			StudentID: studentIDs3A[1],
-			Role:      "mother",
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
-		&student.Guardian{
-			ID:        primitive.NewObjectID(),
-			ParentID:  parentIDs[18].Hex(),
-			StudentID: studentIDs5A[0],
-			Role:      "father",
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
-	)
+	guardians = append(guardians, &student.Guardian{
+		ID:        primitive.NewObjectID(),
+		ParentID:  parentIDs[18].Hex(),
+		StudentID: studentIDs5A[0],
+		Role:      "father",
+		CreatedAt: now,
+		UpdatedAt: now,
+	})
 	if _, err := db.Collection("guardians").InsertMany(ctx, guardians); err != nil {
 		return err
 	}
@@ -198,7 +188,6 @@ func Seed(ctx context.Context, db *mongo.Database) error {
 
 	lanMC := idsBy(questions, teacherLan, string(question.QuestionTypeMultipleChoice), 8)
 	lanTF := idsBy(questions, teacherLan, string(question.QuestionTypeTrueFalse), 8)
-	lanMatch := idsBy(questions, teacherLan, string(question.QuestionTypeMatching), 5)
 	minhMC := idsBy(questions, teacherMinh, string(question.QuestionTypeMultipleChoice), 6)
 
 	desc := func(s string) *string { return &s }
@@ -219,16 +208,6 @@ func Seed(ctx context.Context, db *mongo.Database) error {
 			Description:  desc("Tự nhiên và xã hội"),
 			QuestionType: questionset.QuestionSetTypeTrueFalse,
 			QuestionIds:  lanTF,
-			CreatedBy:    teacherLan,
-			CreatedAt:    now,
-			UpdatedAt:    now,
-		},
-		&questionset.QuestionSet{
-			ID:           primitive.NewObjectID(),
-			Title:        "Matching từ vựng tiếng Anh",
-			Description:  desc("Ghép từ với nghĩa"),
-			QuestionType: questionset.QuestionSetTypeMatching,
-			QuestionIds:  lanMatch,
 			CreatedBy:    teacherLan,
 			CreatedAt:    now,
 			UpdatedAt:    now,
@@ -361,19 +340,6 @@ func tf(createdBy, subject, grade, difficulty, prompt string, correct bool, expl
 	}
 }
 
-func matching(createdBy, subject, grade, difficulty, prompt string, pairs []question.Pair, explanation string, now time.Time) *question.Question {
-	return &question.Question{
-		ID: primitive.NewObjectID(), Type: string(question.QuestionTypeMatching),
-		Subject: subject, Grade: grade, Difficulty: difficulty, Question: prompt,
-		Pairs: pairs, Explanation: explanation,
-		CreatedBy: createdBy, CreatedAt: now, UpdatedAt: now,
-	}
-}
-
-func textPair(left, right string) question.Pair {
-	return question.Pair{Left: left, LeftKind: string(question.Text), Right: right, RightKind: string(question.Text)}
-}
-
 func buildQuestions(teacherLan, teacherMinh string, now time.Time) []*question.Question {
 	g3, g5 := string(question.Grade3), string(question.Grade5)
 	math, viet, eng := string(question.SubjectMathematics), string(question.SubjectVietnamese), string(question.SubjectEnglish)
@@ -414,22 +380,6 @@ func buildQuestions(teacherLan, teacherMinh string, now time.Time) []*question.Q
 		tf(teacherLan, eth, g3, easy, "Xếp hàng khi mua đồ là việc nên làm.", true, "lịch sự", now),
 		tf(teacherLan, string(question.SubjectPhysicalEducation), g3, easy, "Chơi thể thao giúp cơ thể khỏe.", true, "đúng", now),
 		tf(teacherLan, string(question.SubjectMusic), g3, easy, "Nốt Đồ là nốt thấp nhất trong gam Đô trưởng.", true, "C là nốt chủ", now),
-
-		matching(teacherLan, eng, g3, easy, "Ghép từ tiếng Anh với nghĩa tiếng Việt", []question.Pair{
-			textPair("Apple", "Quả táo"), textPair("Dog", "Con chó"), textPair("School", "Trường học"),
-		}, "từ vựng cơ bản", now),
-		matching(teacherLan, math, g3, med, "Ghép hình với số cạnh", []question.Pair{
-			textPair("Tam giác", "3"), textPair("Tứ giác", "4"), textPair("Ngũ giác", "5"),
-		}, "số cạnh", now),
-		matching(teacherLan, viet, g3, easy, "Ghép từ với loại từ", []question.Pair{
-			textPair("học sinh", "danh từ"), textPair("chạy", "động từ"), textPair("đẹp", "tính từ"),
-		}, "từ loại", now),
-		matching(teacherLan, sci, g3, med, "Ghép động vật với nhóm", []question.Pair{
-			textPair("Cá", "Sống dưới nước"), textPair("Chim", "Có cánh"), textPair("Mèo", "Thú nuôi"),
-		}, "động vật", now),
-		matching(teacherLan, string(question.SubjectHistoryAndGeography), g3, hard, "Ghép địa danh", []question.Pair{
-			textPair("Hà Nội", "Thủ đô"), textPair("Huế", "Cố đô"), textPair("Hạ Long", "Vịnh"),
-		}, "địa lý Việt Nam", now),
 	}
 
 	for i := 0; i < 10; i++ {

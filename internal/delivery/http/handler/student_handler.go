@@ -22,12 +22,17 @@ func NewStudentHandler(studentService student.StudentService) *StudentHandler {
 }
 
 func (h *StudentHandler) ClaimStudent(c *fiber.Ctx) error {
+	teacherId, err := middleware.UserIDFromCtx(c)
+	if err != nil {
+		return response.Fail(c, fiber.StatusUnauthorized, string(common.ErrUnauthorized), "UNAUTHORIZED")
+	}
+
 	var req request.ClaimStudentRequest
 	if err := c.BodyParser(&req); err != nil {
 		return response.Fail(c, fiber.StatusBadRequest, string(common.ErrBadRequest), "INVALID_REQUEST_BODY")
 	}
 
-	err := h.studentService.ClaimStudent(c.Context(), req)
+	err = h.studentService.ClaimStudent(c.Context(), teacherId, req)
 	if err != nil {
 		return httperr.Fail(c, err)
 	}

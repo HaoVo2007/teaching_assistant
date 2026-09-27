@@ -4,10 +4,12 @@ import (
 	"context"
 
 	"teaching_assistant/internal/domain/user"
+	"teaching_assistant/pkg/pagination"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type userRepository struct {
@@ -73,4 +75,37 @@ func (r *userRepository) FindByIds(ctx context.Context, ids []primitive.ObjectID
 		users = append(users, &item)
 	}
 	return users, nil
+}
+
+func (r *userRepository) FindParents(ctx context.Context, params pagination.Params, q string) ([]*user.User, int64, error) {
+	filter := bson.M{"role": user.RoleParent}
+	if q != "" {
+		filter["$or"] = []bson.M{
+			{"username": bson.M{"$regex": q, "$options": "i"}},
+			{"email": bson.M{"$regex": q, "$options": "i"}},
+		}
+	}
+
+	total, err := r.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	opts := options.Find().SetSkip(params.Skip()).SetLimit(params.Limit64())
+	opts.SetSort(bson.D{{Key: "created_at", Value: -1}})
+	cursor, err := r.collection.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer cursor.Close(ctx)
+
+	users := make([]*user.User, 0)
+	for cursor.Next(ctx) {
+		var item user.User
+		if err := cursor.Decode(&item); err != nil {
+			return nil, 0, err
+		}
+		users = append(users, &item)
+	}
+	return users, total, nil
 }

@@ -11,15 +11,11 @@ type QuestionType string
 const (
 	QuestionTypeMultipleChoice QuestionType = "multiple_choice"
 	QuestionTypeTrueFalse      QuestionType = "true_false"
-	QuestionTypeMatching       QuestionType = "matching"
 )
 
-type KindPair string
-
-const (
-	Text  KindPair = "text"
-	Image KindPair = "image"
-)
+func IsSupportedType(t string) bool {
+	return QuestionType(t) == QuestionTypeMultipleChoice || QuestionType(t) == QuestionTypeTrueFalse
+}
 
 type Subject string
 
@@ -59,26 +55,16 @@ const (
 
 type Question struct {
 	ID           primitive.ObjectID `bson:"_id"`
-	Type         string             `bson:"type"` // multiple_choice, true_false, matching
+	Type         string             `bson:"type"`
 	Subject      string             `bson:"subject"`
 	Grade        string             `bson:"grade"`
 	Difficulty   string             `bson:"difficulty"`
 	Question     string             `bson:"question"`
-	Options      []string           `bson:"options,omitempty"` // only for multiple_choice type
-	CorrectIndex *int               `bson:"correct_index,omitempty"` // only for multiple_choice type
-	CorrectBool  *bool              `bson:"correct_bool,omitempty"` // only for true_false type
-	Pairs        []Pair             `bson:"pairs,omitempty"` // only for matching type
-	Explanation  string             `bson:"explanation,omitempty"` 
+	Options      []string           `bson:"options,omitempty"`
+	CorrectIndex *int               `bson:"correct_index,omitempty"`
+	CorrectBool  *bool              `bson:"correct_bool,omitempty"`
+	Explanation  string             `bson:"explanation,omitempty"`
 	CreatedBy    string             `bson:"created_by"`
 	CreatedAt    time.Time          `bson:"created_at"`
 	UpdatedAt    time.Time          `bson:"updated_at"`
-}
-
-type Pair struct {
-	Left          string `bson:"left"`
-	LeftPublicID  string `bson:"left_public_id"`
-	LeftKind      string `bson:"left_kind"`
-	Right         string `bson:"right"`
-	RightPublicID string `bson:"right_public_id"`
-	RightKind     string `bson:"right_kind"`
 }

@@ -368,8 +368,23 @@ func (u *homeworkUsecase) GetHomeworksByStudentId(ctx context.Context, userId st
 		}
 	}
 
+	mapped := mapper.MapHomeworksToResponses(homeworks, mapper.QuestionResponseMap(questions))
+	homeworkIDs := make([]string, 0, len(mapped))
+	for _, hw := range mapped {
+		homeworkIDs = append(homeworkIDs, hw.ID)
+	}
+	submitted, err := u.submissionRepo.FindSubmittedHomeworkIDs(ctx, studentRes.ID.Hex(), homeworkIDs)
+	if err != nil {
+		return nil, err
+	}
+	for i := range mapped {
+		if _, ok := submitted[mapped[i].ID]; !ok {
+			mapper.HideHomeworkAnswers(&mapped[i])
+		}
+	}
+
 	return &response.HomeworkResponseWithMeta{
-		Homeworks: mapper.MapHomeworksToResponses(homeworks, mapper.QuestionResponseMap(questions)),
+		Homeworks: mapped,
 		Meta:      pagination.NewMeta(params, total),
 	}, nil
 }

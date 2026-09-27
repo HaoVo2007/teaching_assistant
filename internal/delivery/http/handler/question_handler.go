@@ -1,9 +1,6 @@
 package handler
 
 import (
-	"fmt"
-	"mime/multipart"
-
 	"teaching_assistant/internal/delivery/http/httperr"
 	"teaching_assistant/internal/delivery/http/middleware"
 	"teaching_assistant/internal/delivery/http/request"
@@ -14,8 +11,6 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 )
-
-const maxPairImageSize = 5 << 20
 
 type QuestionHandler struct {
 	questionService question.QuestionService
@@ -35,27 +30,6 @@ func (h *QuestionHandler) CreateQuestion(c *fiber.Ctx) error {
 	var req request.CreateQuestionRequest
 	if err := c.BodyParser(&req); err != nil {
 		return response.Fail(c, fiber.StatusBadRequest, string(common.ErrBadRequest), "INVALID_REQUEST_BODY")
-	}
-
-	if question.QuestionType(req.Type) == question.QuestionTypeMatching {
-		for i := range req.Pairs {
-			if req.Pairs[i].LeftKind == string(question.Image) {
-				header, err := pairImage(c, i, "left")
-				if err != nil {
-					return httperr.Fail(c, err)
-				}
-				req.Pairs[i].LeftFile = header
-				req.Pairs[i].Left = ""
-			}
-			if req.Pairs[i].RightKind == string(question.Image) {
-				header, err := pairImage(c, i, "right")
-				if err != nil {
-					return httperr.Fail(c, err)
-				}
-				req.Pairs[i].RightFile = header
-				req.Pairs[i].Right = ""
-			}
-		}
 	}
 
 	_, err = h.questionService.CreateQuestion(c.UserContext(), req, userId)
@@ -117,27 +91,6 @@ func (h *QuestionHandler) UpdateQuestionById(c *fiber.Ctx) error {
 		return response.Fail(c, fiber.StatusBadRequest, string(common.ErrBadRequest), "INVALID_REQUEST_BODY")
 	}
 
-	if question.QuestionType(req.Type) == question.QuestionTypeMatching {
-		for i := range req.Pairs {
-			if req.Pairs[i].LeftKind == string(question.Image) {
-				header, err := pairImage(c, i, "left")
-				if err != nil {
-					return httperr.Fail(c, err)
-				}
-				req.Pairs[i].LeftFile = header
-				req.Pairs[i].Left = ""
-			}
-			if req.Pairs[i].RightKind == string(question.Image) {
-				header, err := pairImage(c, i, "right")
-				if err != nil {
-					return httperr.Fail(c, err)
-				}
-				req.Pairs[i].RightFile = header
-				req.Pairs[i].Right = ""
-			}
-		}
-	}
-
 	_, err = h.questionService.UpdateQuestionById(c.UserContext(), id, req, userId)
 	if err != nil {
 		return httperr.Fail(c, err)
@@ -163,15 +116,4 @@ func (h *QuestionHandler) DeleteQuestionById(c *fiber.Ctx) error {
 	}
 
 	return response.OK(c, "Question deleted successfully", nil)
-}
-
-func pairImage(c *fiber.Ctx, index int, side string) (*multipart.FileHeader, error) {
-	header, err := c.FormFile(fmt.Sprintf("pairs[%d].%s_image", index, side))
-	if err != nil {
-		return nil, nil
-	}
-	if header.Size > maxPairImageSize {
-		return nil, question.ErrImageTooLarge
-	}
-	return header, nil
 }

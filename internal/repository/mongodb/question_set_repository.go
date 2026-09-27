@@ -36,6 +36,11 @@ func (r *questionSetRepository) GetQuestionSets(ctx context.Context, userId stri
 	}
 	if questionType != "" {
 		filter["question_type"] = questionType
+	} else {
+		filter["question_type"] = bson.M{"$in": []string{
+			string(questionset.QuestionSetTypeMultipleChoice),
+			string(questionset.QuestionSetTypeTrueFalse),
+		}}
 	}
 	opts := options.Find().SetSkip(params.Skip()).SetLimit(params.Limit64())
 	opts.SetSort(bson.D{{Key: "created_at", Value: -1}})

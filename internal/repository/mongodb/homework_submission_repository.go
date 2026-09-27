@@ -130,6 +130,35 @@ func (r *homeworkSubmissionRepository) GetHomeworkSubmissionsOfStudentByHomework
 	return &submission, nil
 }
 
+func (r *homeworkSubmissionRepository) FindSubmittedHomeworkIDs(ctx context.Context, studentID string, homeworkIDs []string) (map[string]struct{}, error) {
+	submitted := make(map[string]struct{})
+	if studentID == "" || len(homeworkIDs) == 0 {
+		return submitted, nil
+	}
+
+	cursor, err := r.collection.Find(ctx, bson.M{
+		"student_id":  studentID,
+		"homework_id": bson.M{"$in": homeworkIDs},
+	}, options.Find().SetProjection(bson.M{"homework_id": 1}))
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	for cursor.Next(ctx) {
+		var doc struct {
+			HomeworkID string `bson:"homework_id"`
+		}
+		if err := cursor.Decode(&doc); err != nil {
+			return nil, err
+		}
+		if doc.HomeworkID != "" {
+			submitted[doc.HomeworkID] = struct{}{}
+		}
+	}
+	return submitted, cursor.Err()
+}
+
 func (r *homeworkSubmissionRepository) CountByHomeworkID(ctx context.Context, homeworkID string) (int64, error) {
 	return r.collection.CountDocuments(ctx, bson.M{"homework_id": homeworkID})
 }

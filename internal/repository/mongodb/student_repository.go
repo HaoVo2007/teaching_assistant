@@ -107,6 +107,37 @@ func (r *studentRepository) GetGuardianByParentId(ctx context.Context, parentId 
 	return &guardian, nil
 }
 
+func (r *studentRepository) GetGuardianByStudentId(ctx context.Context, studentId string) (*student.Guardian, error) {
+	filter := bson.M{"student_id": studentId}
+	var guardian student.Guardian
+	err := r.guardianCollection.FindOne(ctx, filter).Decode(&guardian)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &guardian, nil
+}
+
+func (r *studentRepository) UpdateGuardianParent(ctx context.Context, studentId, parentId string) error {
+	result, err := r.guardianCollection.UpdateOne(
+		ctx,
+		bson.M{"student_id": studentId},
+		bson.M{"$set": bson.M{"parent_id": parentId, "updated_at": time.Now()}},
+	)
+	if mongo.IsDuplicateKeyError(err) {
+		return student.ErrGuardianAlreadyExists
+	}
+	if err != nil {
+		return err
+	}
+	if result.MatchedCount == 0 {
+		return student.ErrGuardianNotFound
+	}
+	return nil
+}
+
 func (r *studentRepository) DeactivateByIDs(ctx context.Context, ids []primitive.ObjectID) error {
 	return r.updateStatusByIDs(ctx, ids, student.StudentStatusInactive)
 }

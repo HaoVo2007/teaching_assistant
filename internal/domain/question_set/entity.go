@@ -11,8 +11,11 @@ type QuestionSetType string
 const (
 	QuestionSetTypeMultipleChoice QuestionSetType = "multiple_choice"
 	QuestionSetTypeTrueFalse      QuestionSetType = "true_false"
-	QuestionSetTypeMatching       QuestionSetType = "matching"
 )
+
+func IsSupportedType(t string) bool {
+	return QuestionSetType(t) == QuestionSetTypeMultipleChoice || QuestionSetType(t) == QuestionSetTypeTrueFalse
+}
 
 type QuestionSet struct {
 	ID           primitive.ObjectID `bson:"_id" json:"id"`

@@ -6,6 +6,7 @@ import (
 	"teaching_assistant/internal/delivery/http/request"
 	"teaching_assistant/internal/domain/user"
 	"teaching_assistant/pkg/common"
+	"teaching_assistant/pkg/pagination"
 	"teaching_assistant/pkg/response"
 
 	"github.com/gofiber/fiber/v2"
@@ -72,4 +73,18 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 		return httperr.Fail(c, err)
 	}
 	return response.OK(c, "User created successfully", res)
+}
+
+func (h *UserHandler) GetParents(c *fiber.Ctx) error {
+	pageSize := c.QueryInt("page_size", 10)
+	pageIndex := c.QueryInt("page_index", 1)
+	q := c.Query("q")
+	params := pagination.New(pageIndex, pageSize)
+
+	parents, err := h.userService.GetParents(c.UserContext(), params, q)
+	if err != nil {
+		return httperr.Fail(c, err)
+	}
+
+	return response.OK(c, "Parents fetched successfully", parents)
 }

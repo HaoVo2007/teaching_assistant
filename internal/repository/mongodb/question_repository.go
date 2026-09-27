@@ -30,6 +30,11 @@ func (r *questionRepository) GetQuestions(ctx context.Context, userId string, pa
 	filter := bson.M{"created_by": userId}
 	if questionType != "" {
 		filter["type"] = questionType
+	} else {
+		filter["type"] = bson.M{"$in": []string{
+			string(question.QuestionTypeMultipleChoice),
+			string(question.QuestionTypeTrueFalse),
+		}}
 	}
 	if questionName != "" {
 		filter["question"] = bson.M{"$regex": questionName, "$options": "i"}
