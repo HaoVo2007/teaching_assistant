@@ -15,6 +15,7 @@ import (
 	"teaching_assistant/internal/repository/mongodb"
 	"teaching_assistant/internal/usecase"
 	"teaching_assistant/pkg/jwt"
+	"teaching_assistant/pkg/llm"
 
 	httpRouter "teaching_assistant/internal/delivery/http"
 	httpHandler "teaching_assistant/internal/delivery/http/handler"
@@ -31,6 +32,7 @@ type Application struct {
 	db           *mongo.Database
 	jwtManager   *jwt.Manager
 	cloudinary   *infrastructureCloudinary.CloudinaryUploader
+	llm          *llm.GroqLLM
 	repositories Repositories
 	services     Services
 	handlers     Handlers
@@ -74,6 +76,7 @@ func NewApplication(ctx context.Context, cfg *config.Config) (*Application, erro
 	if err := a.initDatabase(ctx); err != nil {
 		return nil, err
 	}
+	a.initLLM()
 	a.initJwtManager()
 	a.initCloudinary()
 	a.initRepositories()
@@ -117,6 +120,7 @@ func (a *Application) initServices() {
 		a.repositories.QuestionSetRepository,
 		a.repositories.HomeworkRepository,
 		a.repositories.HomeworkSubmissionRepository,
+		a.llm,
 	)
 	a.services.QuestionSetService = usecase.NewQuestionSetUsecase(a.repositories.QuestionSetRepository, a.repositories.QuestionRepository)
 	a.services.ClassService = usecase.NewClassUsecase(
@@ -183,6 +187,10 @@ func (a *Application) initRouter() {
 		a.handlers.StudentHandler,
 		a.jwtManager,
 	)
+}
+
+func (a *Application) initLLM() {
+	a.llm = llm.NewGroqLLM(a.cfg.Groq.BaseURL, a.cfg.Groq.Model, a.cfg.Groq.APIKey)
 }
 
 func (a *Application) Run() error {

@@ -17,6 +17,36 @@ func IsSupportedType(t string) bool {
 	return QuestionType(t) == QuestionTypeMultipleChoice || QuestionType(t) == QuestionTypeTrueFalse
 }
 
+func IsSupportedSubject(s string) bool {
+	switch Subject(s) {
+	case SubjectVietnamese, SubjectMathematics, SubjectEthics, SubjectEnglish,
+		SubjectNatureAndSociety, SubjectHistoryAndGeography, SubjectScience,
+		SubjectInformatics, SubjectTechnology, SubjectPhysicalEducation,
+		SubjectMusic, SubjectArt, SubjectExperientialActivities:
+		return true
+	default:
+		return false
+	}
+}
+
+func IsSupportedGrade(g string) bool {
+	switch Grade(g) {
+	case Grade1, Grade2, Grade3, Grade4, Grade5:
+		return true
+	default:
+		return false
+	}
+}
+
+func IsSupportedDifficulty(d string) bool {
+	switch Difficulty(d) {
+	case DifficultyEasy, DifficultyMedium, DifficultyHard:
+		return true
+	default:
+		return false
+	}
+}
+
 type Subject string
 
 const (

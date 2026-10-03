@@ -31,7 +31,7 @@ func NewUserUsecase(
 
 func (s *userUsecase) Register(ctx context.Context, req request.CreateUserRequest) (*response.AuthResponse, error) {
 	if req.Username == "" {
-		return nil, user.ErrInvalidName
+		return nil, user.ErrInvalidUsername
 	}
 
 	if req.Email == "" {
@@ -132,7 +132,7 @@ func (s *userUsecase) Logout(ctx context.Context, userId string) error {
 
 func (s *userUsecase) CreateUser(ctx context.Context, req request.CreateUserRequest) (*response.UserResponse, error) {
 	if req.Username == "" {
-		return nil, user.ErrInvalidName
+		return nil, user.ErrInvalidUsername
 	}
 
 	if req.Email == "" {

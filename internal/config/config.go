@@ -11,6 +11,7 @@ type Config struct {
 	MongoDB       MongoDBConfig `envPrefix:"MONGODB_"`
 	JWT           JWTConfig     `envPrefix:"JWT_"`
 	CloudinaryURL string        `env:"CLOUDINARY_URL"`
+	Groq          GroqConfig    `envPrefix:"GROQ_"`
 }
 
 type MongoDBConfig struct {
@@ -21,6 +22,12 @@ type MongoDBConfig struct {
 type JWTConfig struct {
 	Secret      string `env:"SECRET"`
 	ExpireHours int    `env:"EXPIRE_HOURS"`
+}
+
+type GroqConfig struct {
+	BaseURL string `env:"BASE_URL_LLM"`
+	Model   string `env:"MODEL_LLM"`
+	APIKey  string `env:"API_KEY_LLM"`
 }
 
 func Load() (*Config, error) {

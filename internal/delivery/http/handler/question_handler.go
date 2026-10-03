@@ -40,6 +40,24 @@ func (h *QuestionHandler) CreateQuestion(c *fiber.Ctx) error {
 	return response.Created(c, "Question created successfully", nil)
 }
 
+func (h *QuestionHandler) CreateQuestionBatch(c *fiber.Ctx) error {
+	userId, err := middleware.UserIDFromCtx(c)
+	if err != nil {
+		return response.Fail(c, fiber.StatusUnauthorized, string(common.ErrUnauthorized), "UNAUTHORIZED")
+	}
+	var req []*request.CreateQuestionBatchRequest
+	if err := c.BodyParser(&req); err != nil {
+		return response.Fail(c, fiber.StatusBadRequest, string(common.ErrBadRequest), "INVALID_REQUEST_BODY")
+	}
+
+	_, err = h.questionService.CreateQuestionBatch(c.UserContext(), req, userId)
+	if err != nil {
+		return httperr.Fail(c, err)
+	}
+
+	return response.Created(c, "Questions created successfully", nil)
+}
+
 func (h *QuestionHandler) GetQuestions(c *fiber.Ctx) error {
 	pageSize := c.QueryInt("page_size", 10)
 	pageIndex := c.QueryInt("page_index", 1)
@@ -116,4 +134,24 @@ func (h *QuestionHandler) DeleteQuestionById(c *fiber.Ctx) error {
 	}
 
 	return response.OK(c, "Question deleted successfully", nil)
+}
+
+func (h *QuestionHandler) GenerateQuestionByLLM(c *fiber.Ctx) error {
+	questionType := c.Query("question_type")
+	grade := c.Query("grade")
+	subject := c.Query("subject")
+	difficulty := c.Query("difficulty")
+	quantity := c.QueryInt("quantity", 1)
+
+	userId, err := middleware.UserIDFromCtx(c)
+	if err != nil {
+		return response.Fail(c, fiber.StatusUnauthorized, string(common.ErrUnauthorized), "UNAUTHORIZED")
+	}
+
+	question, err := h.questionService.GenerateQuestionByLLM(c.UserContext(), userId, questionType, grade, subject, difficulty, quantity)
+	if err != nil {
+		return httperr.Fail(c, err)
+	}
+
+	return response.OK(c, "Question generated successfully", question)
 }

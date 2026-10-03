@@ -26,6 +26,15 @@ func (r *questionRepository) Create(ctx context.Context, question *question.Ques
 	return err
 }
 
+func (r *questionRepository) CreateMany(ctx context.Context, qs []*question.Question) error {
+	data := make([]interface{}, 0, len(qs))
+	for _, q := range qs {
+		data = append(data, q)
+	}
+	_, err := r.collection.InsertMany(ctx, data)
+	return err
+}
+
 func (r *questionRepository) GetQuestions(ctx context.Context, userId string, params pagination.Params, questionType, questionName, subject, grade, difficulty string) ([]*question.Question, int64, error) {
 	filter := bson.M{"created_by": userId}
 	if questionType != "" {

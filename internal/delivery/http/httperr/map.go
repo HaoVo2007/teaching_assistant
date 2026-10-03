@@ -86,28 +86,22 @@ func lookup(err error) (mapped, bool) {
 
 func userMapped(err user.Error) (mapped, bool) {
 	switch err {
-	case user.ErrInvalidName, user.ErrInvalidUsername:
+	case user.ErrInvalidUsername:
 		return mapped{fiber.StatusBadRequest, "Username is required", "INVALID_USERNAME"}, true
 	case user.ErrInvalidEmail:
 		return mapped{fiber.StatusBadRequest, "Email is required or invalid", "INVALID_EMAIL"}, true
-	case user.ErrInvalidPassword, user.ErrPasswordTooWeak:
+	case user.ErrInvalidPassword:
 		return mapped{fiber.StatusBadRequest, "Password is required", "INVALID_PASSWORD"}, true
 	case user.ErrInvalidRole:
 		return mapped{fiber.StatusBadRequest, "Role must be teacher or parent", "INVALID_ROLE"}, true
-	case user.ErrPasswordMismatch:
-		return mapped{fiber.StatusBadRequest, "Password confirmation does not match", "PASSWORD_MISMATCH"}, true
-	case user.ErrInvalidCredentials, user.ErrWrongPassword:
+	case user.ErrInvalidCredentials:
 		return mapped{fiber.StatusUnauthorized, "Invalid email or password", "INVALID_CREDENTIALS"}, true
 	case user.ErrUserNotFound:
 		return mapped{fiber.StatusNotFound, "User not found", "USER_NOT_FOUND"}, true
-	case user.ErrUserAlreadyExists:
-		return mapped{fiber.StatusConflict, "User already exists", "USER_ALREADY_EXISTS"}, true
 	case user.ErrEmailAlreadyExists:
 		return mapped{fiber.StatusConflict, "Email is already in use", "EMAIL_ALREADY_EXISTS"}, true
 	case user.ErrUnauthorized:
 		return mapped{fiber.StatusUnauthorized, "Unauthorized", "UNAUTHORIZED"}, true
-	case user.ErrForbidden, user.ErrInsufficientPermission:
-		return mapped{fiber.StatusForbidden, "You do not have permission", "FORBIDDEN"}, true
 	default:
 		return mapped{}, false
 	}
@@ -118,15 +112,13 @@ func classMapped(err class.Error) (mapped, bool) {
 	case class.ErrInvalidClass:
 		return mapped{fiber.StatusBadRequest, "Class name is required", "INVALID_CLASS"}, true
 	case class.ErrImageTooLarge:
-		return mapped{fiber.StatusBadRequest, "Class image is too large", "INVALID_IMAGE"}, true
+		return mapped{fiber.StatusBadRequest, "Class image must be 5MB or smaller", "INVALID_IMAGE"}, true
 	case class.ErrClassNotFound:
 		return mapped{fiber.StatusNotFound, "Class not found", "CLASS_NOT_FOUND"}, true
-	case class.ErrClassAlreadyExists:
-		return mapped{fiber.StatusConflict, "Class already exists", "CLASS_ALREADY_EXISTS"}, true
-	case class.ErrClassNotAuthorized, class.ErrUnauthorized:
+	case class.ErrUnauthorized:
 		return mapped{fiber.StatusForbidden, "You cannot manage this class", "CLASS_FORBIDDEN"}, true
 	case class.ErrClassInUse:
-		return mapped{fiber.StatusConflict, "Cannot delete class: a claimed student already has a submission", "CLASS_IN_USE"}, true
+		return mapped{fiber.StatusConflict, "Cannot delete class because it still has homework", "CLASS_IN_USE"}, true
 	case class.ErrStudentCodeExists:
 		return mapped{fiber.StatusConflict, "Student code already exists", "STUDENT_CODE_EXISTS"}, true
 	default:
@@ -140,20 +132,20 @@ func studentMapped(err student.Error) (mapped, bool) {
 		return mapped{fiber.StatusBadRequest, "Student code is required", "INVALID_STUDENT_CODE"}, true
 	case student.ErrInvalidParentID:
 		return mapped{fiber.StatusBadRequest, "Parent is required", "INVALID_PARENT_ID"}, true
+	case student.ErrNotAParent:
+		return mapped{fiber.StatusBadRequest, "The selected user is not a parent", "NOT_A_PARENT"}, true
 	case student.ErrStudentNotFound:
 		return mapped{fiber.StatusNotFound, "Student not found", "STUDENT_NOT_FOUND"}, true
 	case student.ErrGuardianNotFound:
 		return mapped{fiber.StatusNotFound, "No student is linked to this parent", "GUARDIAN_NOT_FOUND"}, true
-	case student.ErrGuardianAlreadyExists:
-		return mapped{fiber.StatusConflict, "This parent already has a student", "PARENT_ALREADY_HAS_STUDENT"}, true
+	case student.ErrParentNotFound:
+		return mapped{fiber.StatusNotFound, "Parent not found", "PARENT_NOT_FOUND"}, true
 	case student.ErrStudentNotInClass:
 		return mapped{fiber.StatusForbidden, "Student does not belong to this class", "STUDENT_NOT_IN_CLASS"}, true
 	case student.ErrStudentInactive:
 		return mapped{fiber.StatusForbidden, "Student is not active", "STUDENT_INACTIVE"}, true
-	case student.ErrParentNotFound:
-		return mapped{fiber.StatusNotFound, "Parent not found", "PARENT_NOT_FOUND"}, true
-	case student.ErrNotAParent:
-		return mapped{fiber.StatusBadRequest, "The selected user is not a parent", "NOT_A_PARENT"}, true
+	case student.ErrGuardianAlreadyExists:
+		return mapped{fiber.StatusConflict, "This parent already has a student", "PARENT_ALREADY_HAS_STUDENT"}, true
 	default:
 		return mapped{}, false
 	}
@@ -161,24 +153,40 @@ func studentMapped(err student.Error) (mapped, bool) {
 
 func questionMapped(err question.Error) (mapped, bool) {
 	switch err {
+	case question.ErrRequiredQuestionType:
+		return mapped{fiber.StatusBadRequest, "Question type is required", "REQUIRED_QUESTION_TYPE"}, true
+	case question.ErrRequiredGrade:
+		return mapped{fiber.StatusBadRequest, "Grade is required", "REQUIRED_GRADE"}, true
+	case question.ErrRequiredSubject:
+		return mapped{fiber.StatusBadRequest, "Subject is required", "REQUIRED_SUBJECT"}, true
+	case question.ErrRequiredDifficulty:
+		return mapped{fiber.StatusBadRequest, "Difficulty is required", "REQUIRED_DIFFICULTY"}, true
+	case question.ErrRequiredQuestion:
+		return mapped{fiber.StatusBadRequest, "Question content is required", "REQUIRED_QUESTION"}, true
+	case question.ErrRequiredCorrectAnswer:
+		return mapped{fiber.StatusBadRequest, "Correct answer is required", "REQUIRED_CORRECT_ANSWER"}, true
 	case question.ErrInvalidType:
-		return mapped{fiber.StatusBadRequest, "Question type is invalid", "INVALID_QUESTION_TYPE"}, true
-	case question.ErrInvalidQuestion:
-		return mapped{fiber.StatusBadRequest, "Question content is invalid", "INVALID_QUESTION"}, true
-	case question.ErrInvalidOptions:
-		return mapped{fiber.StatusBadRequest, "Question options are invalid", "INVALID_OPTIONS"}, true
-	case question.ErrInvalidCorrect:
-		return mapped{fiber.StatusBadRequest, "Correct answer is invalid", "INVALID_CORRECT_ANSWER"}, true
+		return mapped{fiber.StatusBadRequest, "Question type must be multiple_choice or true_false", "INVALID_QUESTION_TYPE"}, true
 	case question.ErrInvalidSubject:
 		return mapped{fiber.StatusBadRequest, "Subject is invalid", "INVALID_SUBJECT"}, true
 	case question.ErrInvalidGrade:
-		return mapped{fiber.StatusBadRequest, "Grade is invalid", "INVALID_GRADE"}, true
+		return mapped{fiber.StatusBadRequest, "Grade must be 1 to 5", "INVALID_GRADE"}, true
+	case question.ErrInvalidDifficulty:
+		return mapped{fiber.StatusBadRequest, "Difficulty must be easy, medium, or hard", "INVALID_DIFFICULTY"}, true
+	case question.ErrInvalidCorrectIndex:
+		return mapped{fiber.StatusBadRequest, "Correct index must match an option", "INVALID_CORRECT_INDEX"}, true
+	case question.ErrInvalidQuantity:
+		return mapped{fiber.StatusBadRequest, "Quantity must be between 1 and 20", "INVALID_QUANTITY"}, true
 	case question.ErrQuestionNotFound:
 		return mapped{fiber.StatusNotFound, "Question not found", "QUESTION_NOT_FOUND"}, true
 	case question.ErrUnauthorized:
 		return mapped{fiber.StatusForbidden, "You cannot manage this question", "QUESTION_FORBIDDEN"}, true
 	case question.ErrQuestionInUse:
 		return mapped{fiber.StatusConflict, "Question is used in a set, homework, or submission", "QUESTION_IN_USE"}, true
+	case question.ErrLLMFailed:
+		return mapped{fiber.StatusBadGateway, "Failed to generate questions", "LLM_FAILED"}, true
+	case question.ErrLLMInvalidResponse:
+		return mapped{fiber.StatusBadGateway, "Generated questions are invalid, please retry", "LLM_INVALID_RESPONSE"}, true
 	default:
 		return mapped{}, false
 	}
@@ -189,16 +197,14 @@ func questionSetMapped(err questionset.Error) (mapped, bool) {
 	case questionset.ErrInvalidTitle:
 		return mapped{fiber.StatusBadRequest, "Question set title is required", "INVALID_TITLE"}, true
 	case questionset.ErrInvalidQuestionType:
-		return mapped{fiber.StatusBadRequest, "Question set type is invalid", "INVALID_QUESTION_TYPE"}, true
+		return mapped{fiber.StatusBadRequest, "Question set type must be multiple_choice or true_false", "INVALID_QUESTION_TYPE"}, true
 	case questionset.ErrInvalidQuestions:
-		return mapped{fiber.StatusBadRequest, "Question list is invalid", "INVALID_QUESTIONS"}, true
+		return mapped{fiber.StatusBadRequest, "Question set must have at least one valid question", "INVALID_QUESTIONS"}, true
 	case questionset.ErrInvalidQuestionTypeForQuestion:
 		return mapped{fiber.StatusBadRequest, "All questions must match the set type", "QUESTION_TYPE_MISMATCH"}, true
 	case questionset.ErrQuestionSetNotFound:
 		return mapped{fiber.StatusNotFound, "Question set not found", "QUESTION_SET_NOT_FOUND"}, true
-	case questionset.ErrQuestionSetAlreadyExists:
-		return mapped{fiber.StatusConflict, "Question set already exists", "QUESTION_SET_ALREADY_EXISTS"}, true
-	case questionset.ErrQuestionSetNotAuthorized, questionset.ErrUnauthorized:
+	case questionset.ErrUnauthorized:
 		return mapped{fiber.StatusForbidden, "You cannot manage this question set", "QUESTION_SET_FORBIDDEN"}, true
 	default:
 		return mapped{}, false
@@ -207,8 +213,6 @@ func questionSetMapped(err questionset.Error) (mapped, bool) {
 
 func homeworkMapped(err homework.Error) (mapped, bool) {
 	switch err {
-	case homework.ErrInvalidHomework:
-		return mapped{fiber.StatusBadRequest, "Homework is invalid", "INVALID_HOMEWORK"}, true
 	case homework.ErrInvalidTitle:
 		return mapped{fiber.StatusBadRequest, "Homework title is required", "INVALID_TITLE"}, true
 	case homework.ErrInvalidClassID:
@@ -219,9 +223,7 @@ func homeworkMapped(err homework.Error) (mapped, bool) {
 		return mapped{fiber.StatusBadRequest, "Due date is invalid (use YYYY-MM-DD UTC)", "INVALID_DUE_DATE"}, true
 	case homework.ErrHomeworkNotFound:
 		return mapped{fiber.StatusNotFound, "Homework not found", "HOMEWORK_NOT_FOUND"}, true
-	case homework.ErrHomeworkAlreadyExists:
-		return mapped{fiber.StatusConflict, "Homework already exists", "HOMEWORK_ALREADY_EXISTS"}, true
-	case homework.ErrHomeworkNotAuthorized, homework.ErrUnauthorized:
+	case homework.ErrHomeworkNotAuthorized:
 		return mapped{fiber.StatusForbidden, "You cannot manage this homework", "HOMEWORK_FORBIDDEN"}, true
 	case homework.ErrHomeworkInUse:
 		return mapped{fiber.StatusConflict, "Cannot change or delete homework that already has submissions", "HOMEWORK_IN_USE"}, true
@@ -232,15 +234,15 @@ func homeworkMapped(err homework.Error) (mapped, bool) {
 
 func submissionMapped(err homeworksubmission.Error) (mapped, bool) {
 	switch err {
-	case homeworksubmission.ErrInvalidHomeworkSubmission, homeworksubmission.ErrHomeworkSubmissionInvalid:
-		return mapped{fiber.StatusBadRequest, "Submission is invalid", "INVALID_SUBMISSION"}, true
+	case homeworksubmission.ErrInvalidHomeworkSubmission:
+		return mapped{fiber.StatusBadRequest, "Homework and answers are required", "INVALID_SUBMISSION"}, true
 	case homeworksubmission.ErrQuestionMismatch:
 		return mapped{fiber.StatusBadRequest, "Answers must match every homework question", "QUESTION_MISMATCH"}, true
 	case homeworksubmission.ErrInvalidStudentAnswer:
 		return mapped{fiber.StatusBadRequest, "Answer does not match the question type", "INVALID_STUDENT_ANSWER"}, true
 	case homeworksubmission.ErrHomeworkSubmissionDueDateExpired:
 		return mapped{fiber.StatusBadRequest, "Homework due date has passed", "DUE_DATE_EXPIRED"}, true
-	case homeworksubmission.ErrHomeworkSubmissionNotFound, homeworksubmission.ErrHomeworkSubmissionNotSubmitted:
+	case homeworksubmission.ErrHomeworkSubmissionNotFound:
 		return mapped{fiber.StatusNotFound, "Submission not found", "SUBMISSION_NOT_FOUND"}, true
 	case homeworksubmission.ErrStudentNotInClass:
 		return mapped{fiber.StatusForbidden, "Student is not in the homework class", "STUDENT_NOT_IN_CLASS"}, true
@@ -261,6 +263,8 @@ func commonMapped(err common.Error) (mapped, bool) {
 		return mapped{fiber.StatusNotFound, "Not found", "NOT_FOUND"}, true
 	case common.ErrAlreadyExists:
 		return mapped{fiber.StatusConflict, "Already exists", "ALREADY_EXISTS"}, true
+	case common.ErrInternalServerError:
+		return mapped{fiber.StatusInternalServerError, "Internal server error", "INTERNAL_SERVER_ERROR"}, true
 	default:
 		return mapped{}, false
 	}
